@@ -1,4 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kids Goals
+
+This app is a Progressive Web App used for keeping track of kids goals. The app is similar to habitica for keeping track of tasks and get rewards/points. The main features are
+
+- Login/Logout
+  -- Parent login is using email + password (supabase auth)
+  -- Kid login with their family, name and passcode
+- Set family name (unique across app).
+- Add Kid
+- Each kid has name and birthday. Also kid name and passcode.
+- Once logged in, the main app page shows the current date.
+- For kids logged in, they can see the date and the activities they are supposed to do.
+- Kids can check on tasks to indicate they completed it. They can also uncheck it if they made a mistake.
+- Kids can also Pay 100 points for rest day. A verification is asked to confirm they want to pay 100 points. During rest day, only important chores are shown (examples of important chores: brush teeth, etc)
+- Or specify which activities they completed.
+- The parent can set whether a chore is important or not for kids.
+- The kids can use their points to purchase rewards. Rewards can be going to the restaurant, going to indoor playground, etc. The parents can set these rewards.
+- All the actions are kept track in an activity log. The parent and kids can view all the activities for all the kids.
+- Each chore has a penalty assigned. If it was not done, the penalties will reduce the kids points. When the chores are all finished, there is a dropdown of effort that the kid can set.
+- The day ending, penalties and all other things can only be assigned when a "End day" button is clicked.
+- If the current date does not match the previous date, the previous dates can still be accessed through a calendar. The calendar has a marking on which dates have been completed.
+- Effort can be managed by the parent and rewards for each effort can be set by the parent.
+- Current points for the kid logged in can be seen on the main navbar.
+- The interface looks kid friendly and fun.
+- Colorful icons can be selected for the individual rewards, chores, etc.
+
+Technologies
+
+- Supabase (Auth, Database, Realtime)
+- NextJS
+
+  This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
