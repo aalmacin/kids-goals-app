@@ -16,7 +16,7 @@
 
 **Purpose**: Apply the database migration that is the foundation for all three user stories.
 
-- [ ] T001 Write `supabase/migrations/0006_event_sourcing.sql`: seed existing balances as manual_adjustment events, update activity_log action_type CHECK constraint to include 'manual_adjustment', create `recalculate_kid_points()` trigger function, create `after_activity_log_insert` trigger, drop `apply_points_delta` function
+- [x] T001 Write `supabase/migrations/0006_event_sourcing.sql`: seed existing balances as manual_adjustment events, update activity_log action_type CHECK constraint to include 'manual_adjustment', create `recalculate_kid_points()` trigger function, create `after_activity_log_insert` trigger, drop `apply_points_delta` function
 - [ ] T002 Apply migration locally: `supabase db reset` and verify trigger exists and `apply_points_delta` is gone
 
 **Checkpoint**: DB trigger live, RPC dropped, `manual_adjustment` action_type accepted by constraint
@@ -29,8 +29,8 @@
 
 **⚠️ CRITICAL**: No server action or UI work can begin until these types are consistent.
 
-- [ ] T003 Add `'manual_adjustment'` to the `actionType` union in `lib/types.ts` (the `ActivityLogEntry.actionType` field)
-- [ ] T004 Update `lib/database.types.ts`: add `'manual_adjustment'` to the `action_type` enum for the `activity_log` table Insert/Row types (manual edit since this is a generated file; note in comment that regenerating from Supabase CLI after migration is the long-term solution)
+- [x] T003 Add `'manual_adjustment'` to the `actionType` union in `lib/types.ts` (the `ActivityLogEntry.actionType` field)
+- [x] T004 Update `lib/database.types.ts`: add `'manual_adjustment'` to the `action_type` enum for the `activity_log` table Insert/Row types (manual edit since this is a generated file; note in comment that regenerating from Supabase CLI after migration is the long-term solution)
 
 **Checkpoint**: TypeScript compiles with `manual_adjustment` as a valid action_type
 
@@ -44,13 +44,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Remove `supabase.rpc('apply_points_delta', ...)` call from `declareRestDay` in `lib/actions/day-records.ts` (the activity_log insert remains unchanged; trigger handles the balance update)
-- [ ] T006 [P] [US1] Remove both `supabase.rpc('apply_points_delta', ...)` calls from `endDay` in `lib/actions/day-records.ts` (penalty delta call and effort reward delta call; activity_log inserts remain)
-- [ ] T007 [P] [US1] Remove `supabase.rpc('apply_points_delta', ...)` call from `redeemReward` in `lib/actions/rewards.ts` (activity_log insert remains unchanged)
+- [x] T005 [P] [US1] Remove `supabase.rpc('apply_points_delta', ...)` call from `declareRestDay` in `lib/actions/day-records.ts` (the activity_log insert remains unchanged; trigger handles the balance update)
+- [x] T006 [P] [US1] Remove both `supabase.rpc('apply_points_delta', ...)` calls from `endDay` in `lib/actions/day-records.ts` (penalty delta call and effort reward delta call; activity_log inserts remain)
+- [x] T007 [P] [US1] Remove `supabase.rpc('apply_points_delta', ...)` call from `redeemReward` in `lib/actions/rewards.ts` (activity_log insert remains unchanged)
 
 ### Tests for User Story 1
 
-- [ ] T008 [US1] Write Vitest integration test in `__tests__/integration/points-event-sourcing.test.ts`: after inserting activity_log rows for penalty, effort reward, and rest day purchase, assert `kids.points` equals the sum of all `points_delta` entries for that kid
+- [x] T008 [US1] Write Vitest integration test in `__tests__/integration/points-event-sourcing.test.ts`: after inserting activity_log rows for penalty, effort reward, and rest day purchase, assert `kids.points` equals the sum of all `points_delta` entries for that kid
 
 **Checkpoint**: All existing point flows (rest day, end day, rewards) continue working; `kids.points` is maintained exclusively by the trigger
 
@@ -64,13 +64,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Add `adjustKidPoints(kidId: string, delta: number, reason?: string)` Server Action to `lib/actions/kids.ts`: verify parent session, verify kidId belongs to parent's family, validate delta is a non-zero integer and reason ≤ 500 chars if provided, insert activity_log row with `actor_type: 'parent'`, `action_type: 'manual_adjustment'`, `points_delta: delta`, `metadata: { reason, adjusted_by_parent_id }`, then revalidatePath('/admin/kids')
-- [ ] T010 [US2] Add inline point adjustment form per kid card in `app/(admin)/admin/kids/page.tsx`: number input (label "Adjust Points", accepts positive/negative integers), optional text input for reason (label "Reason (optional)"), submit button using `adjustKidPoints` Server Action bound to the kid's id; use shadcn Input, Label, Button components
+- [x] T009 [US2] Add `adjustKidPoints(kidId: string, delta: number, reason?: string)` Server Action to `lib/actions/kids.ts`: verify parent session, verify kidId belongs to parent's family, validate delta is a non-zero integer and reason ≤ 500 chars if provided, insert activity_log row with `actor_type: 'parent'`, `action_type: 'manual_adjustment'`, `points_delta: delta`, `metadata: { reason, adjusted_by_parent_id }`, then revalidatePath('/admin/kids')
+- [x] T010 [US2] Add inline point adjustment form per kid card in `app/(admin)/admin/kids/page.tsx`: number input (label "Adjust Points", accepts positive/negative integers), optional text input for reason (label "Reason (optional)"), submit button using `adjustKidPoints` Server Action bound to the kid's id; use shadcn Input, Label, Button components
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Write Vitest integration test in `__tests__/integration/adjust-kid-points.test.ts`: positive delta increases balance, negative delta decreases balance (floor at 0), reason stored in metadata, kid session rejected with error, kidId from different family rejected
-- [ ] T012 [P] [US2] Write Playwright E2E test in `__tests__/e2e/adjust-kid-points.spec.ts`: parent logs in, navigates to /admin/kids, submits +50 adjustment with reason for a kid, verifies badge updates; submits -30 without reason, verifies badge updates; attempts same action as kid session (should fail/not see the form)
+- [x] T011 [P] [US2] Write Vitest integration test in `__tests__/integration/adjust-kid-points.test.ts`: positive delta increases balance, negative delta decreases balance (floor at 0), reason stored in metadata, kid session rejected with error, kidId from different family rejected
+- [x] T012 [P] [US2] Write Playwright E2E test in `__tests__/e2e/adjust-kid-points.spec.ts`: parent logs in, navigates to /admin/kids, submits +50 adjustment with reason for a kid, verifies badge updates; submits -30 without reason, verifies badge updates; attempts same action as kid session (should fail/not see the form)
 
 **Checkpoint**: Parent can add and subtract points inline; each adjustment is persisted in activity_log
 
@@ -84,8 +84,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Update the activity log display in `components/activity-log/ActivityLogTable.tsx` (or equivalent): add a human-readable label for `manual_adjustment` action type (e.g. "Manual Adjustment"); render the `reason` field from `metadata` when present as a secondary line or tooltip; ensure the column renders gracefully when reason is absent
-- [ ] T014 [US3] Write Playwright E2E test in `__tests__/e2e/audit-trail.spec.ts`: parent performs a manual adjustment with a reason, navigates to /activity, verifies the event appears with correct delta and reason text; performs an adjustment without reason, verifies the event appears without a reason field shown
+- [x] T013 [US3] Update the activity log display in `components/activity-log/ActivityLogTable.tsx` (or equivalent): add a human-readable label for `manual_adjustment` action type (e.g. "Manual Adjustment"); render the `reason` field from `metadata` when present as a secondary line or tooltip; ensure the column renders gracefully when reason is absent
+- [x] T014 [US3] Write Playwright E2E test in `__tests__/e2e/audit-trail.spec.ts`: parent performs a manual adjustment with a reason, navigates to /activity, verifies the event appears with correct delta and reason text; performs an adjustment without reason, verifies the event appears without a reason field shown
 
 **Checkpoint**: Full audit trail visible for all event types including manual adjustments
 
@@ -96,7 +96,7 @@
 - [ ] T015 [P] Run `bun run vitest` and confirm all integration tests pass (T008, T011)
 - [ ] T016 [P] Run `bun run playwright test` and confirm all E2E tests pass (T012, T014)
 - [ ] T017 Verify `kids.points` equals `SUM(activity_log.points_delta)` for all kids in local DB (run the reconciliation query from quickstart.md)
-- [ ] T018 Verify TypeScript compiles clean: `bun run tsc --noEmit`
+- [x] T018 Verify TypeScript compiles clean: `bun run tsc --noEmit`
 
 ---
 

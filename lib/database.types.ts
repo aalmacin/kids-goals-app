@@ -267,6 +267,7 @@ export type Database = {
             | 'effort_awarded'
             | 'chore_assigned'
             | 'chore_unassigned'
+            | 'manual_adjustment'
           metadata: Json
           points_delta: number | null
           created_at: string
@@ -286,6 +287,7 @@ export type Database = {
             | 'effort_awarded'
             | 'chore_assigned'
             | 'chore_unassigned'
+            | 'manual_adjustment'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -305,6 +307,7 @@ export type Database = {
             | 'effort_awarded'
             | 'chore_assigned'
             | 'chore_unassigned'
+            | 'manual_adjustment'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -313,12 +316,9 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: {
-      apply_points_delta: {
-        Args: { kid_id: string; delta: number }
-        Returns: void
-      }
-    }
+    // apply_points_delta was dropped in migration 0006_event_sourcing.sql;
+    // kids.points is now maintained by the after_activity_log_insert trigger.
+    Functions: Record<string, never>
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

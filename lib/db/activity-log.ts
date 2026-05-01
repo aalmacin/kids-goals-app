@@ -1,6 +1,12 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/database.types'
 
+// Explicit return type because the kid:kids(name) join is not reflected in
+// Relationships: [] and Supabase's type inference cannot resolve the join.
+type ActivityLogRow = Database['public']['Tables']['activity_log']['Row'] & {
+  kid: { name: string } | null
+}
+
 export async function insertActivityLog(
   entry: Database['public']['Tables']['activity_log']['Insert']
 ) {
@@ -12,7 +18,7 @@ export async function insertActivityLog(
 export async function getActivityLog(
   familyId: string,
   options?: { kidId?: string; limit?: number; cursor?: string }
-) {
+): Promise<ActivityLogRow[]> {
   const supabase = await createSupabaseServerClient()
 
   let query = supabase
@@ -32,5 +38,5 @@ export async function getActivityLog(
 
   const { data, error } = await query
   if (error) throw error
-  return data
+  return data as ActivityLogRow[]
 }

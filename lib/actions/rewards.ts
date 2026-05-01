@@ -84,9 +84,6 @@ export async function redeemReward(rewardId: string) {
   if (!reward) return { error: 'Reward not found' }
   if (kid.points < reward.points_cost) return { error: 'Insufficient points' }
 
-  // Atomic deduction
-  await supabase.rpc('apply_points_delta', { kid_id: kid.id, delta: -reward.points_cost })
-
   // Create redemption record
   await createRedemption(kid.id, reward.id, reward.name, reward.points_cost)
 

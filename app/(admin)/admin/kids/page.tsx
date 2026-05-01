@@ -1,5 +1,4 @@
-import { getKids } from '@/lib/actions/kids'
-import { addKid, removeKid, editKid } from '@/lib/actions/kids'
+import { getKids, addKid, removeKid, editKid, adjustKidPoints } from '@/lib/actions/kids'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -103,15 +102,44 @@ export default async function KidsPage() {
                 {kid.points} pts
               </Badge>
             </div>
-            <form action={removeKid.bind(null, kid.id)}>
-              <Button
-                type="submit"
-                variant="destructive"
-                size="sm"
+            <div className="flex items-center gap-2">
+              <form
+                action={async (formData: FormData) => {
+                  'use server'
+                  const delta = Number(formData.get('delta'))
+                  const reason = (formData.get('reason') as string | null) ?? undefined
+                  await adjustKidPoints(kid.id, delta, reason || undefined)
+                }}
+                className="flex items-center gap-1"
               >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </form>
+                <Input
+                  name="delta"
+                  type="number"
+                  placeholder="±pts"
+                  className="w-20 h-8 text-sm"
+                  required
+                />
+                <Input
+                  name="reason"
+                  type="text"
+                  placeholder="Reason (optional)"
+                  maxLength={500}
+                  className="w-36 h-8 text-sm"
+                />
+                <Button type="submit" size="sm" variant="outline">
+                  Adjust
+                </Button>
+              </form>
+              <form action={removeKid.bind(null, kid.id)}>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  size="sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </form>
+            </div>
           </Card>
         ))}
       </div>
