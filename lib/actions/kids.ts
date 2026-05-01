@@ -19,7 +19,10 @@ async function requireParentFamily() {
 
 export async function addKid(formData: FormData) {
   const name = (formData.get('name') as string).trim()
-  const birthday = formData.get('birthday') as string
+  const month = formData.get('birthday_month') as string
+  const day = formData.get('birthday_day') as string
+  const year = formData.get('birthday_year') as string
+  const birthday = `${year}-${month}-${day}`
   const passcode = formData.get('passcode') as string
   const { redirect } = await import('next/navigation')
 

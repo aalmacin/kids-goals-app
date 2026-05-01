@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 
 export async function createFamily(parentId: string, name: string) {
   const supabase = await createSupabaseServerClient()
@@ -12,7 +12,8 @@ export async function createFamily(parentId: string, name: string) {
 }
 
 export async function getFamilyByName(name: string) {
-  const supabase = await createSupabaseServerClient()
+  // Service client bypasses RLS — needed for kid login and name uniqueness checks
+  const supabase = createSupabaseServiceClient()
   const { data, error } = await supabase
     .from('families')
     .select()

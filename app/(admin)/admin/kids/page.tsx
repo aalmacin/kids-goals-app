@@ -7,6 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, Trash2 } from 'lucide-react'
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
+const currentYear = new Date().getFullYear()
+const YEARS = Array.from({ length: 16 }, (_, i) => currentYear - 2 - i)
+
+const selectClass =
+  'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring transition-colors'
+
 export default async function KidsPage() {
   const kids = await getKids()
 
@@ -26,8 +37,27 @@ export default async function KidsPage() {
               <Input id="name" name="name" placeholder="Alex" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="birthday">Birthday</Label>
-              <Input id="birthday" name="birthday" type="date" required />
+              <Label>Birthday</Label>
+              <div className="flex gap-2">
+                <select name="birthday_month" required className={selectClass}>
+                  <option value="">Month</option>
+                  {MONTHS.map((month, i) => (
+                    <option key={month} value={String(i + 1).padStart(2, '0')}>{month}</option>
+                  ))}
+                </select>
+                <select name="birthday_day" required className={selectClass}>
+                  <option value="">Day</option>
+                  {DAYS.map((day) => (
+                    <option key={day} value={String(day).padStart(2, '0')}>{day}</option>
+                  ))}
+                </select>
+                <select name="birthday_year" required className={selectClass}>
+                  <option value="">Year</option>
+                  {YEARS.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="passcode">Passcode (4–6 digits)</Label>
@@ -60,7 +90,12 @@ export default async function KidsPage() {
               <div>
                 <p className="font-semibold text-gray-800">{kid.name}</p>
                 <p className="text-sm text-gray-500">
-                  Birthday: {new Date(kid.birthday).toLocaleDateString()}
+                  Birthday: {
+                    (() => {
+                      const [y, m, d] = kid.birthday.split('-').map(Number)
+                      return new Date(y, m - 1, d).toLocaleDateString()
+                    })()
+                  }
                 </p>
               </div>
               <Badge className="bg-yellow-100 text-yellow-800">
