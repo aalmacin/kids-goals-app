@@ -73,4 +73,6 @@ supabase/migrations/
 
 ## Complexity Tracking
 
-No constitution violations. No complexity justifications needed.
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| No real-time subscription (Principle II) | The comparison page is a read-only snapshot — kids navigate to it, see the leaderboard, and leave. Points changes during the visit are rare and not safety-critical. Adding a Supabase realtime channel for a passive display page adds client-side complexity without meaningful UX benefit. | A client component with `useEffect` + Supabase `channel.on('postgres_changes', ...)` for the `kids` table would require converting the server component to a client component, adding TanStack Query for state, and handling channel lifecycle — disproportionate for a low-interactivity view. |

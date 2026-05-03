@@ -1,12 +1,13 @@
 <!--
   SYNC IMPACT REPORT
-  Version change: (unversioned template) → 1.0.0
-  Added sections: Core Principles (I–V), Technology Stack, Testing Strategy, Governance
-  Removed sections: N/A — initial constitution
+  Version change: 1.0.0 → 1.0.1
+  Modified sections: Technology Stack — added Package Manager entry (bun)
+  Added sections: None
+  Removed sections: None
   Templates updated:
-    - .specify/templates/plan-template.md — ✅ Constitution Check section is template-driven; no edits needed
-    - .specify/templates/spec-template.md — ✅ No changes needed (generic; constitution gates applied at runtime)
-    - .specify/templates/tasks-template.md — ✅ Test tasks align with Principle V; no structural changes needed
+    - .specify/templates/plan-template.md — ✅ No structural changes needed
+    - .specify/templates/spec-template.md — ✅ No changes needed
+    - .specify/templates/tasks-template.md — ✅ No structural changes needed
   Follow-up TODOs: None
 -->
 
@@ -78,6 +79,8 @@ parent and child accounts. Regressions here directly degrade trust.
 - **E2E Testing**: Playwright
 - **Unit / Integration Testing**: Vitest (or Jest if already bootstrapped)
 - **Language**: TypeScript — strict mode, no `any`, no `@ts-ignore` without justification comment
+- **Package Manager**: bun — ALL install, run, and script commands MUST use `bun` / `bunx`.
+  `npm`, `npx`, `yarn`, and `pnpm` MUST NOT be used.
 
 ## Testing Strategy
 
@@ -100,4 +103,4 @@ This constitution supersedes all other conventions. Amendments require:
 All PRs MUST include a brief "Constitution Check" confirming no principles are violated. Any
 intentional deviation MUST be documented in the Complexity Tracking section of `plan.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-25 | **Last Amended**: 2026-04-25
+**Version**: 1.0.1 | **Ratified**: 2026-04-25 | **Last Amended**: 2026-05-03

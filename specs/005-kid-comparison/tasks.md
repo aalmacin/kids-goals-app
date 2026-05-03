@@ -29,8 +29,8 @@
 
 **⚠️ CRITICAL**: All user story phases depend on this phase completing first.
 
-- [ ] T001 Create Supabase migration with `kid_select_sibling_kids` and `kid_select_sibling_day_records` RLS policies in `supabase/migrations/0010_kid_comparison_rls.sql`
-- [ ] T002 Create `lib/db/compare.ts` with three exported async functions: `getSiblings(familyId)`, `getTodayDailyProgress(kidIds, today)`, and `getWeeklyPointsSummary(familyId, kidIds, sevenDaysAgo)`
+- [x] T001 Create Supabase migration with `kid_select_sibling_kids` and `kid_select_sibling_day_records` RLS policies in `supabase/migrations/0007_kid_comparison_rls.sql`
+- [x] T002 Create `lib/db/compare.ts` with three exported async functions: `getSiblings(familyId)`, `getTodayDailyProgress(kidIds, today)`, and `getWeeklyPointsSummary(familyId, kidIds, sevenDaysAgo)`
 
 **Checkpoint**: RLS allows cross-sibling reads; DB helpers are ready for use by all user story phases.
 
@@ -44,9 +44,9 @@
 
 ### Implementation
 
-- [ ] T003 [US1] Create `components/compare/Leaderboard.tsx` — renders ranked list of kids using shadcn Card and Badge; accepts `kids: { id, name, points }[]` and `currentKidId: string` props; highlights current kid's row
-- [ ] T004 [US1] Create `app/(dashboard)/compare/page.tsx` — Server Component that: (1) authenticates user and resolves kidId/familyId, (2) redirects parent to `/admin`, (3) fetches siblings via `getSiblings`, (4) renders `<Leaderboard>` or an empty-siblings message when only one kid
-- [ ] T005 [US1] Add "Compare" nav link in `components/navbar/NavBar.tsx` for `session.role === 'kid'` pointing to `/compare`
+- [x] T003 [US1] Create `components/compare/Leaderboard.tsx` — renders ranked list of kids using shadcn Card and Badge; accepts `kids: { id, name, points }[]` and `currentKidId: string` props; highlights current kid's row
+- [x] T004 [US1] Create `app/(dashboard)/compare/page.tsx` — Server Component that: (1) authenticates user and resolves kidId/familyId, (2) redirects parent to `/admin`, (3) fetches siblings via `getSiblings`, (4) renders `<Leaderboard>` or an empty-siblings message when only one kid
+- [x] T005 [US1] Add "Compare" nav link in `components/navbar/NavBar.tsx` for `session.role === 'kid'` pointing to `/compare`
 
 **Checkpoint**: Kids can access `/compare`, see the leaderboard, and identify themselves. Single-child families see an appropriate message.
 
@@ -60,8 +60,8 @@
 
 ### Implementation
 
-- [ ] T006 [US2] Create `components/compare/DailyProgress.tsx` — renders a grid of kid cards showing `completedCount/totalCount` chores using shadcn Progress and Badge; accepts `progress: { kidId, name, completedCount, totalCount, isRestDay }[]` and `currentKidId: string` props
-- [ ] T007 [US2] Update `app/(dashboard)/compare/page.tsx` to also fetch daily progress via `getTodayDailyProgress` and pass data to `<DailyProgress>`
+- [x] T006 [US2] Create `components/compare/DailyProgress.tsx` — renders a grid of kid cards showing `completedCount/totalCount` chores using shadcn Progress and Badge; accepts `progress: { kidId, name, completedCount, totalCount, isRestDay }[]` and `currentKidId: string` props
+- [x] T007 [US2] Update `app/(dashboard)/compare/page.tsx` to also fetch daily progress via `getTodayDailyProgress` and pass data to `<DailyProgress>`
 
 **Checkpoint**: The compare page now shows both the leaderboard and today's chore progress per sibling.
 
@@ -75,8 +75,8 @@
 
 ### Implementation
 
-- [ ] T008 [US3] Create `components/compare/WeeklySummary.tsx` — renders a ranked list of kids by weekly points earned using shadcn Card and Badge; accepts `summary: { kidId, name, weeklyPoints }[]` and `currentKidId: string` props
-- [ ] T009 [US3] Update `app/(dashboard)/compare/page.tsx` to also fetch weekly summary via `getWeeklyPointsSummary` and pass data to `<WeeklySummary>`
+- [x] T008 [US3] Create `components/compare/WeeklySummary.tsx` — renders a ranked list of kids by weekly points earned using shadcn Card and Badge; accepts `summary: { kidId, name, weeklyPoints }[]` and `currentKidId: string` props
+- [x] T009 [US3] Update `app/(dashboard)/compare/page.tsx` to also fetch weekly summary via `getWeeklyPointsSummary` and pass data to `<WeeklySummary>`
 
 **Checkpoint**: All three comparison sections (leaderboard, daily progress, weekly summary) are visible on `/compare`.
 
@@ -84,7 +84,8 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T010 Verify build succeeds with `npm run build`
+- [x] T010 Verify build succeeds with `npm run build`
+- [x] T011 Create Playwright E2E test for compare page in `__tests__/e2e/us11-kid-comparison.spec.ts` — unauthenticated access redirects to login (happy path and auth failure path)
 
 ---
 
