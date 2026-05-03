@@ -76,23 +76,36 @@ describe('Rewards Integration', () => {
     expect(redemption?.points_cost_snapshot).toBe(50)
   })
 
-  it('applies points delta atomically via function', async () => {
+  it('trigger deducts points when a reward_redeemed event is inserted', async () => {
     const service = createSupabaseServiceClient()
 
     const { data: before } = await service.from('kids').select('points').eq('id', kidId).single()
     const pointsBefore = before?.points ?? 0
 
-    await service.rpc('apply_points_delta', { kid_id: kidId, delta: -50 })
+    await service.from('activity_log').insert({
+      family_id: familyId,
+      kid_id: kidId,
+      actor_type: 'kid' as const,
+      action_type: 'reward_redeemed' as const,
+      metadata: {},
+      points_delta: -50,
+    })
 
     const { data: after } = await service.from('kids').select('points').eq('id', kidId).single()
     expect(after?.points).toBe(Math.max(0, pointsBefore - 50))
   })
 
-  it('points cannot go below zero', async () => {
+  it('points cannot go below zero via trigger', async () => {
     const service = createSupabaseServiceClient()
 
-    // Drain all points
-    await service.rpc('apply_points_delta', { kid_id: kidId, delta: -10000 })
+    await service.from('activity_log').insert({
+      family_id: familyId,
+      kid_id: kidId,
+      actor_type: 'parent' as const,
+      action_type: 'penalty_applied' as const,
+      metadata: {},
+      points_delta: -10000,
+    })
 
     const { data } = await service.from('kids').select('points').eq('id', kidId).single()
     expect(data?.points).toBe(0)

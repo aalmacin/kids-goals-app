@@ -19,7 +19,10 @@ async function requireParentFamily() {
 
 export async function addKid(formData: FormData) {
   const name = (formData.get('name') as string).trim()
-  const birthday = formData.get('birthday') as string
+  const month = formData.get('birthday_month') as string
+  const day = formData.get('birthday_day') as string
+  const year = formData.get('birthday_year') as string
+  const birthday = `${year}-${month}-${day}`
   const passcode = formData.get('passcode') as string
   const { redirect } = await import('next/navigation')
 
@@ -111,4 +114,40 @@ export async function removeKid(kidId: string) {
 export async function getKids() {
   const { family } = await requireParentFamily()
   return getKidsByFamily(family.id)
+}
+
+export async function adjustKidPoints(kidId: string, delta: number, reason?: string) {
+  if (!Number.isInteger(delta) || delta === 0) {
+    return { error: 'Delta must be a non-zero integer' }
+  }
+  if (reason !== undefined && reason.length > 500) {
+    return { error: 'Reason must be 500 characters or fewer' }
+  }
+
+  const { user, family } = await requireParentFamily()
+
+  const supabase = await createSupabaseServerClient()
+  const { data: kid } = await supabase
+    .from('kids')
+    .select('id')
+    .eq('id', kidId)
+    .eq('family_id', family.id)
+    .maybeSingle()
+
+  if (!kid) return { error: 'Kid not found in your family' }
+
+  const metadata: Record<string, string> = { adjusted_by_parent_id: user.id }
+  if (reason) metadata.reason = reason
+
+  await supabase.from('activity_log').insert({
+    family_id: family.id,
+    kid_id: kidId,
+    actor_type: 'parent' as const,
+    action_type: 'manual_adjustment' as const,
+    metadata,
+    points_delta: delta,
+  })
+
+  revalidatePath('/admin/kids')
+  return { success: true }
 }

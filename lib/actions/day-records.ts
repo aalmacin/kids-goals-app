@@ -81,9 +81,6 @@ export async function declareRestDay(dayRecordId: string) {
 
   if (dayRecord?.is_rest_day) return { success: true }
 
-  // Deduct points
-  await supabase.rpc('apply_points_delta', { kid_id: kid.id, delta: -100 })
-
   // Mark as rest day
   await supabase
     .from('day_records')
@@ -144,7 +141,6 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
 
   // Apply penalty
   if (totalPenalty > 0) {
-    await supabase.rpc('apply_points_delta', { kid_id: kidId, delta: -totalPenalty })
     await supabase.from('activity_log').insert({
       family_id: kid!.family_id,
       kid_id: kidId,
@@ -166,7 +162,6 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     if (effortLevel) {
       const effortPoints = calculateEffortReward({ id: effortLevel.id, familyId: effortLevel.family_id, name: effortLevel.name, points: effortLevel.points })
       if (effortPoints > 0) {
-        await supabase.rpc('apply_points_delta', { kid_id: kidId, delta: effortPoints })
         await supabase.from('activity_log').insert({
           family_id: kid!.family_id,
           kid_id: kidId,

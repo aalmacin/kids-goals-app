@@ -75,6 +75,7 @@ export type ActivityLogEntry = {
     | 'effort_awarded'
     | 'chore_assigned'
     | 'chore_unassigned'
+    | 'manual_adjustment'
   metadata: Record<string, unknown>
   pointsDelta: number | null
   createdAt: string

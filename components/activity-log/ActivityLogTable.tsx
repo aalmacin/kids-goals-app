@@ -22,6 +22,7 @@ const ACTION_LABELS: Record<ActivityLogEntry['actionType'], string> = {
   effort_awarded: 'Effort Reward 🌟',
   chore_assigned: 'Chore Assigned',
   chore_unassigned: 'Chore Unassigned',
+  manual_adjustment: 'Manual Adjustment',
 }
 
 interface ActivityLogTableProps {
@@ -46,13 +47,24 @@ const columns = [
     header: 'Kid',
     cell: (info) => info.getValue() ?? '—',
   }),
-  columnHelper.accessor('actionType', {
+  columnHelper.display({
+    id: 'action',
     header: 'Action',
-    cell: (info) => (
-      <Badge variant="outline" className="text-xs">
-        {ACTION_LABELS[info.getValue()] ?? info.getValue()}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const actionType = row.original.actionType
+      const metadata = row.original.metadata as Record<string, string> | null
+      const reason = metadata?.reason
+      return (
+        <div>
+          <Badge variant="outline" className="text-xs">
+            {ACTION_LABELS[actionType] ?? actionType}
+          </Badge>
+          {actionType === 'manual_adjustment' && reason && (
+            <p className="text-xs text-gray-500 mt-1">{reason}</p>
+          )}
+        </div>
+      )
+    },
   }),
   columnHelper.accessor('pointsDelta', {
     header: 'Points',

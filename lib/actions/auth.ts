@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 import { createFamily, getFamilyByName, getFamilyByParentId } from '@/lib/db/families'
 
 export async function loginParent(formData: FormData) {
@@ -60,7 +60,9 @@ export async function loginKid(formData: FormData) {
   if (!family) redirect(`/kid-login?error=${encodeURIComponent('Family not found')}`)
 
   // Look up kid by family + name to get their supabase_user_id
-  const { data: kid, error: kidError } = await supabase
+  // Must use service client — user is unauthenticated at this point so RLS would block the query
+  const service = createSupabaseServiceClient()
+  const { data: kid, error: kidError } = await service
     .from('kids')
     .select('supabase_user_id')
     .eq('family_id', family!.id)
