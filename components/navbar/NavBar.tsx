@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { logout } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
+import { AppLogo } from './AppLogo'
 import { PointsBadge } from './PointsBadge'
 import type { SessionUser } from '@/lib/types'
 
@@ -16,8 +17,9 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
   return (
     <nav className="bg-indigo-600 text-white px-6 py-4 shadow-lg">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link href="/dashboard" className="text-xl font-bold text-white">
-          Kids Goals ⭐
+        <Link href="/dashboard" className="flex items-center gap-2 text-xl font-bold text-white">
+          <AppLogo className="h-8 w-auto" />
+          <span>Kids Goals</span>
         </Link>
 
         <div className="flex items-center gap-4">

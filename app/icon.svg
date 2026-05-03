@@ -1,0 +1,56 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="512" height="512" rx="110" fill="#FFF4E6" stroke="#F4D9B8" stroke-width="3"/>
+
+  <!-- Inner soft circle accent -->
+  <circle cx="256" cy="256" r="200" fill="#FFEAD0" opacity="0.6"/>
+
+  <!-- Sparkle accents -->
+  <g fill="#FFC9A8">
+    <circle cx="90" cy="100" r="9"/>
+    <circle cx="425" cy="80" r="11"/>
+    <circle cx="440" cy="420" r="9"/>
+    <circle cx="80" cy="430" r="10"/>
+  </g>
+  <g fill="#B8E0D2" opacity="0.9">
+    <circle cx="135" cy="220" r="6"/>
+    <circle cx="395" cy="200" r="7"/>
+    <circle cx="140" cy="370" r="6"/>
+    <circle cx="395" cy="380" r="6"/>
+  </g>
+
+  <!-- Star body -->
+  <path d="M 256 110 L 296 215 L 408 222 L 320 290 L 348 398 L 256 340 L 164 398 L 192 290 L 104 222 L 216 215 Z"
+        fill="#FFE08A" stroke="#E8B84F" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Star inner highlight -->
+  <path d="M 256 142 L 278 204 L 343 207 L 296 244 L 312 304 L 256 273 L 200 304 L 216 244 L 169 207 L 234 204 Z"
+        fill="#FFEFB0" opacity="0.7"/>
+
+  <!-- Cheeks -->
+  <ellipse cx="200" cy="278" rx="17" ry="12" fill="#FFB6C1" opacity="0.85"/>
+  <ellipse cx="312" cy="278" rx="17" ry="12" fill="#FFB6C1" opacity="0.85"/>
+
+  <!-- Eyes (closed happy arcs) -->
+  <path d="M 213 247 Q 226 237 239 247" fill="none" stroke="#3D2817" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 273 247 Q 286 237 299 247" fill="none" stroke="#3D2817" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Smile -->
+  <path d="M 232 290 Q 256 310 280 290" fill="none" stroke="#3D2817" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Trophy cup (top right) -->
+  <path d="M 365 150 L 365 178 Q 365 212 393 212 Q 421 212 421 178 L 421 150 Z"
+        fill="#F5C2A0" stroke="#C88B65" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Trophy handles -->
+  <path d="M 365 162 Q 346 165 348 180 Q 350 193 365 190" fill="none" stroke="#C88B65" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 421 162 Q 440 165 438 180 Q 436 193 421 190" fill="none" stroke="#C88B65" stroke-width="4" stroke-linecap="round"/>
+  <!-- Trophy stem -->
+  <rect x="387" y="212" width="12" height="14" fill="#C88B65"/>
+  <!-- Trophy base -->
+  <rect x="372" y="226" width="42" height="9" rx="3" fill="#C88B65"/>
+  <!-- Trophy shine -->
+  <rect x="370" y="158" width="5" height="28" rx="2" fill="#FFF4E6" opacity="0.7"/>
+  <!-- Star on trophy -->
+  <path d="M 393 170 L 397 180 L 407 180 L 399 186 L 402 196 L 393 190 L 384 196 L 387 186 L 379 180 L 389 180 Z"
+        fill="#FFE08A" stroke="#E8B84F" stroke-width="1"/>
+</svg>
