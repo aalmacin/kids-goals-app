@@ -11,6 +11,7 @@ export default async function ActivityPage() {
   if (!user) redirect('/login')
 
   let familyId: string
+  let kidId: string | undefined
 
   const parentFamily = await getFamilyByParentId(user.id)
   if (parentFamily) {
@@ -18,14 +19,15 @@ export default async function ActivityPage() {
   } else {
     const { data: kid } = await supabase
       .from('kids')
-      .select('family_id')
+      .select('id, family_id')
       .eq('supabase_user_id', user.id)
       .maybeSingle()
     if (!kid) redirect('/login')
     familyId = kid.family_id
+    kidId = kid.id
   }
 
-  const rawEntries = await getActivityLog(familyId, { limit: 100 })
+  const rawEntries = await getActivityLog(familyId, { kidId, limit: 100 })
 
   const entries: (ActivityLogEntry & { kidName?: string })[] = rawEntries.map((e) => ({
     id: e.id,

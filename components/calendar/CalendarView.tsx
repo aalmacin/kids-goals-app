@@ -23,7 +23,7 @@ export function CalendarView({ dayRecords, selectedDate }: CalendarViewProps) {
   function handleSelect(date: Date | undefined) {
     if (!date) return
     const iso = date.toISOString().split('T')[0]
-    router.push(`/dashboard?date=${iso}`)
+    router.push(`/?date=${iso}`)
   }
 
   const selected = new Date(selectedDate + 'T00:00:00')

@@ -30,17 +30,49 @@ But the NavBar links all use `/dashboard` prefix:
 
 **Alternatives considered**: None — this is a clear routing bug, not a design decision.
 
-### Bug 2: Chores Assigned Not Showing
+### Bug 2: Chores Always Show "No chores assigned!"
 
-**Decision**: This is most likely a consequence of Bug 1. When kids click nav links, they get 404s instead of the dashboard. The actual chore display logic in `getOrCreateDayRecord` and `ChoreList` is correct.
+**Decision**: Two causes — partially a consequence of Bug 1 (kids can't reach `/`), and a separate seeding bug in `getOrCreateDayRecord`.
 
 **Rationale**:
-- The `getOrCreateDayRecord` function correctly seeds `chore_completions` from `chore_assignments` when creating a new day record
-- The `ChoreList` component correctly renders completions
-- If a kid navigates directly to `/`, chores should appear (if assignments exist)
-- The "chores not showing" symptom is caused by the 404 — kids can't reach the dashboard page
+- When a day record already exists (kid visited before chores were assigned), the seeding logic is skipped entirely
+- New assignments added after the day record was created never get backfilled as completions
+- Fix: when loading an existing day record, check for assignments that don't have corresponding completions and backfill them
 
-**Additional minor issue**: The `chore_completions` table and seeding logic don't include the chore `icon`. The `ChoreItem` component falls back to a 'star' icon via `completion.choreIcon ?? 'star'`. This is cosmetic, not functional.
+**Affected file**: `lib/db/day-records.ts`
+
+### Bug 3: Activity Log Shows Other Kids' Data
+
+**Decision**: The activity page queries by `familyId` without filtering by `kidId` for kid users.
+
+**Rationale**:
+- `getActivityLog` accepts an optional `kidId` parameter but the activity page never passes it for kid users
+- The RLS policy `kid_select_activity_log` allows kids to see all family activity (by design for RLS), but the application should scope it to the logged-in kid
+- Fix: pass `kidId` to `getActivityLog` when the user is a kid
+
+**Affected file**: `app/(dashboard)/activity/page.tsx`
+
+### Bug 4: Calendar Date Navigation Fails
+
+**Decision**: The `CalendarView` component uses `/dashboard?date=...` for navigation — same `/dashboard` prefix bug as Bug 1.
+
+**Rationale**:
+- `router.push('/dashboard?date=${iso}')` navigates to a non-existent `/dashboard` route
+- The correct URL is `/?date=${iso}` since the dashboard page is at `/`
+
+**Affected file**: `components/calendar/CalendarView.tsx`
+
+### Bug 5: Duplicate Checkbox on Chore Items
+
+**Decision**: The base-ui Checkbox component renders both a styled `<span>` and a hidden native `<input>`. The input is hidden via inline `style` attributes, but the CSP policy uses a nonce for `style-src`, causing browsers to ignore `'unsafe-inline'` and block the inline styles. The native input becomes visible alongside the styled checkbox.
+
+**Rationale**:
+- `@base-ui/react/checkbox` renders a hidden `<input type="checkbox">` with `style: { position: 'absolute', clipPath: 'inset(50%)', ... }` for form compatibility
+- The CSP `style-src 'self' 'nonce-${nonce}'` causes `'unsafe-inline'` to be ignored even in dev mode (per CSP Level 2+ spec)
+- Without `'unsafe-inline'` being effective, the inline `style` on the input is blocked, making it visible
+- Fix: add `[&_input]:sr-only` Tailwind class to the Checkbox component, hiding the input via stylesheet rules instead of inline styles
+
+**Affected file**: `components/ui/checkbox.tsx`
 
 ## Fix Summary
 
@@ -48,4 +80,7 @@ But the NavBar links all use `/dashboard` prefix:
 |-------|-----|------|
 | NavBar links use `/dashboard/*` | Remove `/dashboard` prefix from all links | `components/navbar/NavBar.tsx` |
 | Logo link uses `/dashboard` | Change to `/` | `components/navbar/NavBar.tsx` |
-| Chore icon not passed through | Add icon snapshot to seeding and display (optional enhancement) | `lib/db/day-records.ts`, `app/(dashboard)/page.tsx` |
+| Chores not backfilled for existing day records | Backfill completions for new assignments | `lib/db/day-records.ts` |
+| Activity log shows all kids' data | Filter by `kidId` for kid users | `app/(dashboard)/activity/page.tsx` |
+| Calendar navigates to `/dashboard?date=` | Change to `/?date=` | `components/calendar/CalendarView.tsx` |
+| Duplicate checkbox on chore items | Add `[&_input]:sr-only` to hide native input via CSS | `components/ui/checkbox.tsx` |

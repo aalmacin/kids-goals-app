@@ -17,7 +17,7 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
   return (
     <nav className="bg-indigo-600 text-white px-6 py-4 shadow-lg">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2 text-xl font-bold text-white">
+        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-white">
           <AppLogo className="h-8 w-auto" />
           <span>Kids Goals</span>
         </Link>
@@ -32,7 +32,7 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
               <Link href="/admin" className="hover:text-indigo-200 text-sm">
                 Admin
               </Link>
-              <Link href="/dashboard/activity" className="hover:text-indigo-200 text-sm">
+              <Link href="/activity" className="hover:text-indigo-200 text-sm">
                 Activity
               </Link>
             </>
@@ -40,16 +40,16 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
 
           {session.role === 'kid' && (
             <>
-              <Link href="/dashboard" className="hover:text-indigo-200 text-sm">
+              <Link href="/" className="hover:text-indigo-200 text-sm">
                 Today
               </Link>
-              <Link href="/dashboard/rewards" className="hover:text-indigo-200 text-sm">
+              <Link href="/rewards" className="hover:text-indigo-200 text-sm">
                 Rewards
               </Link>
-              <Link href="/dashboard/activity" className="hover:text-indigo-200 text-sm">
+              <Link href="/activity" className="hover:text-indigo-200 text-sm">
                 Activity
               </Link>
-              <Link href="/dashboard/calendar" className="hover:text-indigo-200 text-sm">
+              <Link href="/calendar" className="hover:text-indigo-200 text-sm">
                 Calendar
               </Link>
             </>

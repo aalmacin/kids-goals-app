@@ -66,6 +66,53 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
     }
   } else {
     dayRecord = existing
+
+    // Backfill completions for assignments added after the day record was created
+    const { data: existingCompletions } = await supabase
+      .from('chore_completions')
+      .select('chore_assignment_id')
+      .eq('day_record_id', existing.id)
+
+    const existingAssignmentIds = new Set(
+      (existingCompletions ?? []).map((c) => c.chore_assignment_id)
+    )
+
+    const { data: assignments } = await supabase
+      .from('chore_assignments')
+      .select('id, chore_id')
+      .eq('kid_id', kidId)
+
+    const newAssignments = (assignments ?? []).filter(
+      (a) => !existingAssignmentIds.has(a.id)
+    )
+
+    if (newAssignments.length > 0) {
+      const choreIds = newAssignments.map((a) => a.chore_id)
+      const { data: chores } = await supabase
+        .from('chores')
+        .select('id, name, penalty, is_important, deleted_at')
+        .in('id', choreIds)
+
+      const choreMap = new Map((chores ?? []).map((c) => [c.id, c]))
+
+      const newCompletions = newAssignments
+        .map((a) => ({ assignment: a, chore: choreMap.get(a.chore_id) }))
+        .filter(({ chore }) => chore && !chore.deleted_at)
+        .map(({ assignment, chore }) => ({
+          day_record_id: existing.id,
+          chore_assignment_id: assignment.id,
+          chore_name_snapshot: chore!.name,
+          penalty_snapshot: chore!.penalty,
+          is_important_snapshot: chore!.is_important,
+        }))
+
+      if (newCompletions.length > 0) {
+        const { error: compError } = await supabase
+          .from('chore_completions')
+          .insert(newCompletions)
+        if (compError) throw compError
+      }
+    }
   }
 
   // Fetch completions separately

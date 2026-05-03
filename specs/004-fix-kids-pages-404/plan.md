@@ -5,7 +5,12 @@
 
 ## Summary
 
-The NavBar component uses `/dashboard/*` URL paths for navigation links, but the `(dashboard)` folder is a Next.js route group (parenthesized folders don't create URL segments). The actual routes are `/`, `/activity`, `/rewards`, `/calendar`. This causes all NavBar links to 404. The "chores not showing" issue is a direct consequence — kids can't reach the dashboard page.
+Multiple bugs in the kid-facing experience:
+1. NavBar uses `/dashboard/*` URL paths but `(dashboard)` is a route group (no URL segment) — causes 404s
+2. CalendarView navigates to `/dashboard?date=` — same routing bug
+3. Activity log queries by `familyId` only, showing other kids' data to kid users
+4. Day record seeding skips backfill when chores are assigned after the kid's first visit — causes "No chores assigned!"
+5. Duplicate checkbox on chore items — CSP blocks base-ui's inline styles that hide the native `<input>`
 
 ## Technical Context
 
@@ -25,13 +30,13 @@ The NavBar component uses `/dashboard/*` URL paths for navigation links, but the
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns | PASS | Fix uses standard Link component, no API routes |
-| II. Supabase Patterns | PASS | No database changes needed |
+| I. Next.js Patterns | PASS | Fix uses standard Link component and server actions, no API routes |
+| II. Supabase Patterns | PASS | No schema changes; query filtering uses existing RLS-compatible patterns |
 | III. TanStack First | PASS | No state management changes |
-| IV. shadcn Components First | PASS | No UI component changes |
-| V. Test Coverage | REQUIRES | E2E test should verify nav links work correctly |
+| IV. shadcn Components First | PASS | Checkbox fix targets the shadcn wrapper, follows existing conventions |
+| V. Test Coverage | REQUIRES | E2E tests should verify nav links, activity filtering, calendar nav, and chore backfill |
 
-**Post-design re-check**: All principles satisfied. The fix is a single-file change to NavBar links.
+**Post-design re-check**: All principles satisfied. Fixes span 5 files across routing, data filtering, data seeding, and UI components.
 
 ## Project Structure
 
@@ -50,11 +55,22 @@ specs/004-fix-kids-pages-404/
 
 ```text
 components/
-└── navbar/
-    └── NavBar.tsx        # Fix: update all Link href values
+├── navbar/
+│   └── NavBar.tsx            # Fix: update all Link href values
+├── calendar/
+│   └── CalendarView.tsx      # Fix: update router.push URL
+└── ui/
+    └── checkbox.tsx          # Fix: hide native input with CSS class instead of inline styles
+
+app/(dashboard)/
+└── activity/
+    └── page.tsx              # Fix: filter activity log by kidId for kid users
+
+lib/db/
+└── day-records.ts            # Fix: backfill completions for new assignments on existing day records
 ```
 
-**Structure Decision**: Single file fix in the existing component directory. No new files or structural changes needed.
+**Structure Decision**: Bug fixes across 5 existing files. No new files or structural changes needed.
 
 ## Complexity Tracking
 
