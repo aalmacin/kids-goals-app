@@ -5,7 +5,7 @@
 
 **Tests**: Not explicitly requested. E2E test included per constitution requirement (Principle V).
 
-**Organization**: Tasks grouped by user story. US2 (daily progress) and US3 (weekly summary) both depend on the compare page route established in US1 and can reuse the DB helpers module.
+**Organization**: Tasks grouped by user story. US2 (daily progress) and US3 (weekly summary) both depend on the compare page route established in US1 and reuse the DB helpers module.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -29,8 +29,8 @@
 
 **⚠️ CRITICAL**: All user story phases depend on this phase completing first.
 
-- [x] T001 Create Supabase migration with `kid_select_sibling_kids` and `kid_select_sibling_day_records` RLS policies in `supabase/migrations/0007_kid_comparison_rls.sql`
-- [x] T002 Create `lib/db/compare.ts` with three exported async functions: `getSiblings(familyId)`, `getTodayDailyProgress(kidIds, today)`, and `getWeeklyPointsSummary(familyId, kidIds, sevenDaysAgo)`
+- [x] T001 Create Supabase migration adding three RLS policies (`kid_select_sibling_kids`, `kid_select_sibling_day_records`, `kid_select_sibling_chore_completions`) in `supabase/migrations/0007_kid_comparison_rls.sql`
+- [x] T002 Create `lib/db/compare.ts` with three exported async functions: `getSiblings(familyId)`, `getTodayDailyProgress(siblings, today)`, and `getWeeklyPointsSummary(familyId, siblings, sevenDaysAgo)`
 
 **Checkpoint**: RLS allows cross-sibling reads; DB helpers are ready for use by all user story phases.
 
@@ -44,8 +44,8 @@
 
 ### Implementation
 
-- [x] T003 [US1] Create `components/compare/Leaderboard.tsx` — renders ranked list of kids using shadcn Card and Badge; accepts `kids: { id, name, points }[]` and `currentKidId: string` props; highlights current kid's row
-- [x] T004 [US1] Create `app/(dashboard)/compare/page.tsx` — Server Component that: (1) authenticates user and resolves kidId/familyId, (2) redirects parent to `/admin`, (3) fetches siblings via `getSiblings`, (4) renders `<Leaderboard>` or an empty-siblings message when only one kid
+- [x] T003 [US1] Create `components/compare/Leaderboard.tsx` — renders ranked list of kids using shadcn Card and Badge; accepts `kids: { id, name, points }[]` and `currentKidId: string` props; highlights current kid's row with indigo styling and "You" badge
+- [x] T004 [US1] Create `app/(dashboard)/compare/page.tsx` — Server Component that: (1) authenticates user, (2) redirects parent to `/admin`, (3) fetches siblings via `getSiblings`, (4) renders `<Leaderboard>` or empty-siblings message when only one kid, (5) fetches and renders daily progress and weekly summary in parallel
 - [x] T005 [US1] Add "Compare" nav link in `components/navbar/NavBar.tsx` for `session.role === 'kid'` pointing to `/compare`
 
 **Checkpoint**: Kids can access `/compare`, see the leaderboard, and identify themselves. Single-child families see an appropriate message.
@@ -60,8 +60,8 @@
 
 ### Implementation
 
-- [x] T006 [US2] Create `components/compare/DailyProgress.tsx` — renders a grid of kid cards showing `completedCount/totalCount` chores using shadcn Progress and Badge; accepts `progress: { kidId, name, completedCount, totalCount, isRestDay }[]` and `currentKidId: string` props
-- [x] T007 [US2] Update `app/(dashboard)/compare/page.tsx` to also fetch daily progress via `getTodayDailyProgress` and pass data to `<DailyProgress>`
+- [x] T006 [US2] Create `components/compare/DailyProgress.tsx` — renders kid cards showing `completedCount/totalCount` chores with an inline Tailwind progress bar and rest-day Badge; accepts `progress: { kidId, name, completedCount, totalCount, isRestDay }[]` and `currentKidId: string` props
+- [x] T007 [US2] Wire `<DailyProgress>` into `app/(dashboard)/compare/page.tsx` using data from `getTodayDailyProgress`
 
 **Checkpoint**: The compare page now shows both the leaderboard and today's chore progress per sibling.
 
@@ -76,7 +76,7 @@
 ### Implementation
 
 - [x] T008 [US3] Create `components/compare/WeeklySummary.tsx` — renders a ranked list of kids by weekly points earned using shadcn Card and Badge; accepts `summary: { kidId, name, weeklyPoints }[]` and `currentKidId: string` props
-- [x] T009 [US3] Update `app/(dashboard)/compare/page.tsx` to also fetch weekly summary via `getWeeklyPointsSummary` and pass data to `<WeeklySummary>`
+- [x] T009 [US3] Wire `<WeeklySummary>` into `app/(dashboard)/compare/page.tsx` using data from `getWeeklyPointsSummary`
 
 **Checkpoint**: All three comparison sections (leaderboard, daily progress, weekly summary) are visible on `/compare`.
 
@@ -84,8 +84,8 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [x] T010 Verify build succeeds with `npm run build`
-- [x] T011 Create Playwright E2E test for compare page in `__tests__/e2e/us11-kid-comparison.spec.ts` — unauthenticated access redirects to login (happy path and auth failure path)
+- [x] T010 Verify build succeeds with `bun run build`
+- [x] T011 Create Playwright E2E test for compare page in `__tests__/e2e/us11-kid-comparison.spec.ts` — unauthenticated access redirects to login (auth failure path per constitution Principle V)
 
 ---
 
@@ -95,8 +95,8 @@
 
 - **Phase 2 (Foundational)**: No dependencies — can start immediately
 - **Phase 3 (US1)**: Depends on T001, T002
-- **Phase 4 (US2)**: Depends on T004 (page exists); T002 (DB helper); can start after Phase 3 checkpoint
-- **Phase 5 (US3)**: Depends on T004; can start after Phase 3 checkpoint (parallel with Phase 4)
+- **Phase 4 (US2)**: Depends on T004 (page exists) + T002 (DB helper); can start after Phase 3 checkpoint
+- **Phase 5 (US3)**: Depends on T004 + T002; can start after Phase 3 checkpoint (parallel with Phase 4)
 - **Phase 6**: Depends on all previous phases
 
 ### User Story Dependencies
@@ -107,8 +107,8 @@
 
 ### Parallel Opportunities
 
-- T003, T005 are in different files — can run in parallel within US1
-- T006 and T008 are in different files — can run in parallel (US2 and US3 components)
+- T003 and T005 are in different files — can run in parallel within US1
+- T006 and T008 are in different files — can run in parallel across US2/US3
 - T007 and T009 both update `compare/page.tsx` — must run sequentially
 
 ---
@@ -118,7 +118,7 @@
 ### MVP First (User Story 1 Only)
 
 1. Complete T001 (RLS migration)
-2. Complete T002 (DB helpers — `getSiblings` only needed for MVP)
+2. Complete T002 (`getSiblings` function only)
 3. Complete T003–T005 (leaderboard + page + nav link)
 4. **STOP and VALIDATE**: Leaderboard works end-to-end
 5. Demo/deploy if ready
@@ -129,14 +129,15 @@
 2. T003–T005 → Leaderboard (US1 MVP)
 3. T006–T007 → Daily progress (US2)
 4. T008–T009 → Weekly summary (US3)
-5. T010 → Final build verification
+5. T010–T011 → Build verification + E2E test
 
 ---
 
 ## Notes
 
-- RLS migration must be applied to local Supabase before testing locally (`supabase db reset` or `supabase migration up`)
-- `getSiblings` returns all kids in the family (including the logged-in kid); filter by current kidId in UI to highlight
-- `getTodayDailyProgress` must handle kids with no day_record yet (return `completedCount: 0, totalCount: 0`)
-- `getWeeklyPointsSummary` should only sum entries where `points_delta IS NOT NULL` and `points_delta != 0`
+- RLS migration must be applied to local Supabase before testing locally (`supabase migration up`)
+- `getSiblings` returns all kids in the family including the logged-in kid; highlight self by comparing `kid.id === currentKidId` in UI
+- `getTodayDailyProgress` handles kids with no day_record yet (returns `completedCount: 0, totalCount: 0`)
+- `getWeeklyPointsSummary` only sums entries where `points_delta IS NOT NULL`
 - The compare page is read-only — no Server Actions needed
+- Use `bun run build` for all build verification (not npm)
