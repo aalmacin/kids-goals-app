@@ -15,14 +15,14 @@
 
 **Purpose**: Copy icon assets to the project
 
-- [ ] T001 [P] Copy favicon.ico from ~/Documents/2026/Kids Goals App/favicon.ico to app/favicon.ico (replace existing)
-- [ ] T002 [P] Copy favicon.svg to public/favicon.svg
-- [ ] T003 [P] Copy favicon-16.png to public/favicon-16.png
-- [ ] T004 [P] Copy favicon-32.png to public/favicon-32.png
-- [ ] T005 [P] Copy favicon-192.png to public/favicon-192.png
-- [ ] T006 [P] Copy favicon-512.png to public/favicon-512.png
-- [ ] T007 [P] Copy apple-touch-icon-180.png to public/apple-touch-icon.png
-- [ ] T008 [P] Copy kids_goals_app_logo.svg to public/logo.svg
+- [x] T001 [P] Copy favicon.ico from ~/Documents/2026/Kids Goals App/favicon.ico to app/favicon.ico (replace existing)
+- [x] T002 [P] Copy favicon.svg to app/icon.svg (Next.js file convention)
+- [x] T003 [P] Copy favicon-16.png to public/favicon-16.png
+- [x] T004 [P] Copy favicon-32.png to public/favicon-32.png
+- [x] T005 [P] Copy favicon-192.png to public/favicon-192.png
+- [x] T006 [P] Copy favicon-512.png to public/favicon-512.png
+- [x] T007 [P] Copy apple-touch-icon-180.png to app/apple-icon.png (Next.js file convention)
+- [x] T008 [P] Copy kids_goals_app_logo.svg to public/logo.svg
 
 **Checkpoint**: All static assets are in place
 
@@ -34,9 +34,9 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 Update metadata icons configuration in app/layout.tsx to include favicon.svg, favicon-16.png, favicon-32.png, and apple-touch-icon references
-- [ ] T010 Update app/manifest.ts to reference favicon-192.png and favicon-512.png (replace current icon-192x192.png and icon-512x512.png references)
-- [ ] T011 Remove unused default icon files from public/ (file.svg, globe.svg, next.svg, vercel.svg, window.svg)
+- [x] T009 Icons auto-detected by Next.js file conventions (app/favicon.ico, app/icon.svg, app/apple-icon.png) — no manual metadata config needed
+- [x] T010 Update app/manifest.ts to reference favicon-192.png and favicon-512.png (replace current icon-192x192.png and icon-512x512.png references)
+- [x] T011 Remove unused default icon files from public/ (file.svg, globe.svg, next.svg, vercel.svg, window.svg)
 
 **Checkpoint**: Foundation ready - favicons and PWA icons serve correctly
 
@@ -50,8 +50,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Create logo component in components/app-logo.tsx that renders public/logo.svg with text fallback
-- [ ] T013 [US1] Add app-logo component to the app header/navigation area (identify existing header component or create minimal one in app layout)
+- [x] T012 [US1] Create logo component in components/navbar/AppLogo.tsx that renders public/logo.svg with text fallback
+- [x] T013 [US1] Add AppLogo component to NavBar header
 
 **Checkpoint**: Logo visible in header, favicon in browser tab, bookmark shows icon
 
@@ -65,7 +65,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Verify manifest.ts icons resolve correctly in DevTools > Application > Manifest
+- [x] T014 [US2] Verify manifest.ts icons resolve correctly (build passes, manifest.webmanifest route generated)
 - [ ] T015 [US2] Test PWA install prompt shows correct icon (manual verification via DevTools)
 
 **Checkpoint**: PWA install uses branded icon on mobile devices
@@ -76,7 +76,7 @@
 
 **Purpose**: Testing and cleanup
 
-- [ ] T016 [P] Add Playwright E2E test verifying favicon and logo presence in __tests__/e2e/logo-favicon.spec.ts
+- [x] T016 [P] Add Playwright E2E test verifying favicon and logo presence in __tests__/e2e/logo-favicon.spec.ts
 - [ ] T017 Run quickstart.md validation (bun dev, check favicon in tab, logo in header, manifest icons)
 
 ---
