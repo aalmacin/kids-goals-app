@@ -1,54 +1,75 @@
-# Quickstart: Kid Comparison
+# Quickstart: Family Page
+
+## Prerequisites
+
+1. Ensure local Supabase is running: `bunx supabase start`
+2. Apply all migrations: `bunx supabase migration up`
+3. Seed test data: at least one family with 2–3 kids
 
 ## Manual Integration Test
 
-### Setup (in Supabase local or staging)
+### Setup
 
-1. Create a family with 2–3 kids (use admin panel or seed script)
+1. Create a family with 2–3 kids via the admin panel
 2. Assign different chores to each kid
-3. Log in as Kid A and complete some chores; end the day with an effort level
-4. Log in as Kid B and complete fewer chores
-5. Log in as Kid C (optional) with no chores started
+3. Log in as Kid A; complete some chores
+4. Log in as Kid B; complete fewer chores
+5. (Optional) Log in as Kid C; complete none
 
 ### Test Scenarios
 
-#### US1 — Leaderboard
+#### Family page loads for a multi-kid family
 
 1. Log in as Kid A
-2. Navigate to `/compare`
+2. Navigate to `/family`
 3. **Expect**: All kids listed, ranked highest points first
-4. **Expect**: Kid A's row is visually highlighted
-5. **Expect**: Points totals match the points shown in the navbar badge
+4. **Expect**: Kid A's row is visually highlighted with "You" badge
+5. **Expect**: Points totals match the navbar badge
 
-#### US1 — Single-child family
+#### Single-child family
 
 1. Create a family with exactly one kid
 2. Log in as that kid
-3. Navigate to `/compare`
-4. **Expect**: "No siblings to compare with yet" message displayed
+3. Navigate to `/family`
+4. **Expect**: Page renders showing only that kid's card (no error message)
 
-#### US2 — Daily progress
+#### `/compare` redirects to `/family`
 
-1. After completing chores as Kid A (step 3 in Setup)
-2. Navigate to `/compare`
-3. **Expect**: Kid A shows X/X chores with a full progress bar or completion indicator
-4. **Expect**: Kid B shows fewer completed chores
-5. **Expect**: Kid C shows 0/N (not started) or "No chores" if unassigned
+1. Navigate to `/compare`
+2. **Expect**: Browser redirects to `/family` automatically
 
-#### US2 — Rest day
+#### Daily progress
 
-1. Log in as Kid B and mark the day as a rest day
-2. Navigate to `/compare` as Kid A
-3. **Expect**: Kid B's daily progress entry shows a "Rest Day" indicator
+1. After completing chores as Kid A
+2. Navigate to `/family` as Kid B
+3. **Expect**: Each kid shows chore progress fraction with progress bar
+4. **Expect**: Kid with all chores done shows green "Done ✓" badge
+5. **Expect**: Rest day kid shows "Rest Day" badge
 
-#### US3 — Weekly summary
+#### Weekly summary
 
-1. Ensure Kids have activity over the past 7 days (effort awards, chore completion events)
-2. Navigate to `/compare`
-3. **Expect**: Each kid shows their points earned this week
-4. **Expect**: The kid with most weekly points appears at the top of the weekly section
+1. Ensure kids have activity log entries over the past 7 days
+2. Navigate to `/family`
+3. **Expect**: Weekly points section shows each kid's 7-day total
+4. **Expect**: Kid with most weekly points appears first
 
-### Redirect Checks
+#### Real-time update
 
-- Parent logs in → redirected to `/admin`, no access to `/compare`
+1. Log in as Kid A in one browser tab; open `/family`
+2. Log in as Kid B in another tab; complete a chore
+3. **Expect**: Kid A's view updates without page refresh
+
+#### Auth redirects
+
+- Parent logs in → stays at `/admin`, no access to `/family`
 - Unauthenticated user → redirected to `/login`
+
+## Running Tests
+
+```bash
+# Unit/integration
+bun run test
+
+# E2E (requires local Supabase running)
+bunx playwright test --grep "family"
+```

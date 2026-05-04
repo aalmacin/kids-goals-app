@@ -1,82 +1,67 @@
-# Research: Kid Comparison
+# Research: Family Page (005-kid-comparison)
 
-## Data Access
+## 1. Root Cause of the "No Siblings" Bug
 
-### Decision: Read all sibling data using existing Supabase typed client with new RLS policies
+**Decision**: The guard `if (siblings.length <= 1)` in `compare/page.tsx` is the bug trigger.
 
-**Rationale**: The `kids` table currently has no RLS policy allowing a kid to read other kids' rows. To display sibling data, two options exist: (1) add RLS policies for family-scoped reads, or (2) use a service-role client in a server action. Option 1 is correct per constitution — RLS on every table, enforced at the DB layer. No new tables are needed.
+When migration `0007_kid_comparison_rls.sql` is not applied to a local Supabase instance, only the original `kid_select_self` policy is active — so `getSiblings` returns only the logged-in kid's own row, making `siblings.length === 1` and triggering the message.
 
-**Alternatives considered**:
-- Service-role bypass: Rejected — undermines RLS-first security posture required by the constitution.
-- Materialized view: Overkill for a small family app; raw queries are sufficient.
+**Fix**: Remove the guard entirely. The Family page shows all family members including the logged-in kid. Single-kid families are valid and show one card.
 
-### Decision: Weekly summary computed via `activity_log` `points_delta` aggregation
+**Alternatives considered**: Adding a better empty state — rejected, because the Family page always has at least one member (the logged-in kid).
 
-**Rationale**: `activity_log` is the event-sourced source of truth for all points changes. Summing `points_delta` where `created_at >= now() - 7 days` and `kid_id = X` gives the accurate weekly delta per kid. The `kids.points` field reflects all-time total only.
+## 2. Family Resolution via `family_id`
 
-**Alternatives considered**:
-- Querying `day_records` + `chore_completions`: Does not capture penalty, effort award, or rest-day cost events. Incomplete.
-- Storing weekly points on the kid record: Requires a cron job or trigger; over-engineered for this scale.
+**Decision**: Use `kid.family_id` directly from the kids table. The existing `getSiblings` (to be renamed `getFamilyMembers`) already does this correctly via `SELECT * FROM kids WHERE family_id = $1`.
 
-### Decision: Daily progress computed from `day_records` + `chore_completions` for today's date
+**Rationale**: The clarification Q1 ("via parent") described the ownership relationship, not the query path. Direct `family_id` lookup is simpler. The "via parent" path adds an unnecessary JOIN.
 
-**Rationale**: Each kid has at most one `day_record` per date. Counting completions where `completed_at IS NOT NULL` vs total completions gives the chore fraction for that day. If no day_record exists yet, the kid hasn't started their day (show 0/0 or "Not started").
+**Fallback**: When `kid.family_id` is missing or the query returns empty, show only the logged-in kid's card. The page always renders something.
 
-**Alternatives considered**:
-- Counting from `chore_assignments` directly: Doesn't capture rest days or partially-completed days correctly.
+## 3. Data Fetch Strategy (Hybrid)
 
-## UI Approach
+**Decision**: Server Component renders initial family data (SSR). A `'use client'` child component wraps with TanStack Query using `initialData` from SSR and subscribes to Supabase Realtime on the `kids` table for live points updates.
 
-### Decision: Server Component page — no TanStack Query needed
+**Rationale**: Fastest initial load (no loading skeleton flash) + live updates when siblings earn points. Aligns with constitution §II (real-time for live data) and §III (TanStack Query for server state).
 
-**Rationale**: The comparison page is read-only with no interactive mutations. It renders on demand as a Next.js server component, fetching all data server-side in a single pass. No client-side state management required. TanStack Query is reserved for client components that need caching or optimistic updates (none on this page).
+**Realtime channel**: Subscribe to `kids` table `UPDATE` events filtered by `family_id`. On update, invalidate `['familyMembers', familyId]` to trigger a refetch.
 
 **Alternatives considered**:
-- Client component with TanStack Query: Adds unnecessary complexity for a static read.
+- Pure SSR only — rejected, misses real-time requirement
+- Pure client fetch — rejected, causes loading flash on page entry
 
-### Decision: shadcn Card + Badge for leaderboard; shadcn Progress for daily chores
+## 4. Daily Progress Data Sources
 
-**Rationale**: Constitution requires shadcn-first. `Card` provides the entry container, `Badge` highlights ranks and the "you" indicator, `Progress` shows the chore completion bar. No custom components needed.
+**Decision**: `DayRecord` for completed/total chore counts and rest day status; `ActivityLog` for points earned today.
 
-## RLS Policies
+**Rationale**: `DayRecord` + `chore_completions` is authoritative for chore state. `ActivityLog` tracks point events, making it the right source for today's earned points (distinct from cumulative `kids.points`).
 
-### Decision: Add `kid_select_sibling_kids` RLS policy on `kids` table
+**Implementation**: Add `pointsEarnedToday` to `DailyProgressEntry` by summing `activity_log.points_delta` where `DATE(created_at) = today` per kid.
 
-```sql
-CREATE POLICY kid_select_sibling_kids ON kids
-  FOR SELECT
-  USING (
-    family_id IN (
-      SELECT family_id FROM kids WHERE supabase_user_id = auth.uid()
-    )
-  );
-```
+## 5. Routing Strategy
 
-### Decision: Add `kid_select_sibling_day_records` RLS policy on `day_records` table
+**Decision**: New route `app/(dashboard)/family/page.tsx`. Existing `app/(dashboard)/compare/page.tsx` calls `redirect('/family')`.
 
-```sql
-CREATE POLICY kid_select_sibling_day_records ON day_records
-  FOR SELECT
-  USING (
-    kid_id IN (
-      SELECT id FROM kids WHERE family_id IN (
-        SELECT family_id FROM kids WHERE supabase_user_id = auth.uid()
-      )
-    )
-  );
-```
+**Rationale**: Clean URL, no broken links from existing sessions. NavBar link updated from `/compare` → `/family`, label "Compare" → "Family".
 
-**Note**: The `activity_log` table already has an RLS policy allowing kids to see all family entries (`kid_select_activity_log`). No change needed.
+## 6. File Renames
 
-## Fix Summary
+| Old | New |
+|-----|-----|
+| `lib/db/compare.ts` | `lib/db/family.ts` |
+| `components/compare/Leaderboard.tsx` | `components/family/Leaderboard.tsx` |
+| `components/compare/DailyProgress.tsx` | `components/family/DailyProgress.tsx` |
+| `components/compare/WeeklySummary.tsx` | `components/family/WeeklySummary.tsx` |
+| `SiblingKid` type | `FamilyMember` type |
+| `getSiblings()` | `getFamilyMembers()` |
 
-| Component | Change | File |
-|-----------|--------|------|
-| RLS policy — kids cross-sibling | New migration | `supabase/migrations/0010_kid_comparison_rls.sql` |
-| RLS policy — day_records cross-sibling | New migration | `supabase/migrations/0010_kid_comparison_rls.sql` |
-| Compare DB helpers | New module | `lib/db/compare.ts` |
-| Compare page | New server component | `app/(dashboard)/compare/page.tsx` |
-| Leaderboard component | New component | `components/compare/Leaderboard.tsx` |
-| Daily progress component | New component | `components/compare/DailyProgress.tsx` |
-| Weekly summary component | New component | `components/compare/WeeklySummary.tsx` |
-| NavBar — Compare link | Update | `components/navbar/NavBar.tsx` |
+**Rationale**: "Sibling" framing replaced by "Family" throughout. All import paths updated.
+
+## 7. RLS Policies (Already Applied)
+
+Migration `0007_kid_comparison_rls.sql` already contains the correct policies:
+- `kid_select_sibling_kids` — kids SELECT all kids in their family
+- `kid_select_sibling_day_records` — kids SELECT day_records for family members
+- `kid_select_sibling_chore_completions` — kids SELECT chore_completions for family members
+
+No new migration needed for this phase. Ensure `supabase migration up` is run locally.
