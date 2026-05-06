@@ -15,6 +15,15 @@ export type Chore = {
   isImportant: boolean
   icon: string
   deletedAt: string | null
+  allowedDays: number[]
+}
+
+export type Family = {
+  id: string
+  name: string
+  parentId: string
+  timezone: string
+  createdAt: string
 }
 
 export type ChoreAssignment = {

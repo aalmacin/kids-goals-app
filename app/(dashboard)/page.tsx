@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord } from '@/lib/db/day-records'
 import { ChoreList } from '@/components/chore-list/ChoreList'
+import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
+import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate } from '@/lib/chore-schedule'
 import type { ChoreCompletion, EffortLevel } from '@/lib/types'
 
 export default async function DashboardPage({
@@ -32,6 +34,49 @@ export default async function DashboardPage({
   const date = params.date ?? today
 
   const dayRecord = await getOrCreateDayRecord(kid.id, date)
+
+  // Compute unavailable chores (assigned but schedule-blocked for this date)
+  const dayOfWeek = dayOfWeekFromDate(date)
+  const seededAssignmentIds = new Set(
+    dayRecord.chore_completions.map((c) => c.chore_assignment_id)
+  )
+
+  const { data: rawAssignments } = await supabase
+    .from('chore_assignments')
+    .select('id, chore_id')
+    .eq('kid_id', kid.id)
+
+  const assignedChoreIds = (rawAssignments ?? []).map((a) => a.chore_id)
+
+  const { data: assignedChores } = assignedChoreIds.length > 0
+    ? await supabase
+        .from('chores')
+        .select('id, name, icon, deleted_at, allowed_days')
+        .in('id', assignedChoreIds)
+    : { data: [] as { id: string; name: string; icon: string; deleted_at: string | null; allowed_days: number[] | null }[] }
+
+  const assignmentByChoreId = new Map(
+    (rawAssignments ?? []).map((a) => [a.chore_id, a.id])
+  )
+
+  const unavailableChores = (assignedChores ?? [])
+    .filter((chore) => {
+      const assignmentId = assignmentByChoreId.get(chore.id) ?? ''
+      return (
+        !chore.deleted_at &&
+        !seededAssignmentIds.has(assignmentId) &&
+        !isChoreAvailableOn(chore.allowed_days, dayOfWeek)
+      )
+    })
+    .map((chore) => {
+      const nextDate = getNextAvailableDate(chore.allowed_days, new Date(date + 'T12:00:00'))
+      return {
+        id: chore.id,
+        name: chore.name,
+        icon: chore.icon,
+        nextAvailableDay: nextDate ? nextDate.getDay() : null,
+      }
+    })
 
   // Map DB completions to typed ChoreCompletion
   const completions: ChoreCompletion[] = (dayRecord.chore_completions).map((c) => ({
@@ -95,6 +140,9 @@ export default async function DashboardPage({
         isRestDay={dayRecord.is_rest_day}
         isEnded={isEnded}
       />
+
+      {/* Unavailable chores (schedule-blocked for today) */}
+      <UnavailableChoreSection chores={unavailableChores} />
 
       {/* Actions (only if not ended) */}
       {!isEnded && (
