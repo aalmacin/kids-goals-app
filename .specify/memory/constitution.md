@@ -1,13 +1,13 @@
 <!--
   SYNC IMPACT REPORT
-  Version change: 1.0.0 → 1.0.1
-  Modified sections: Technology Stack — added Package Manager entry (bun)
+  Version change: 1.0.1 → 1.0.2
+  Modified sections: Principle V — clarified that E2E tests MUST be explicit tasks in tasks.md
   Added sections: None
   Removed sections: None
   Templates updated:
-    - .specify/templates/plan-template.md — ✅ No structural changes needed
+    - .specify/templates/tasks-template.md — ✅ Updated "Tests: OPTIONAL" note to mandate E2E tasks
+    - .specify/templates/plan-template.md — ✅ No changes needed
     - .specify/templates/spec-template.md — ✅ No changes needed
-    - .specify/templates/tasks-template.md — ✅ No structural changes needed
   Follow-up TODOs: None
 -->
 
@@ -65,8 +65,13 @@ effort rewards) MUST have unit tests. Integration tests MUST cover Supabase RLS 
 server action contracts. Test files MUST be co-located or in a parallel `__tests__` directory.
 Tests MUST pass in CI before merging.
 
+E2E tests MUST be included as explicit tasks in `tasks.md` for every feature with user-facing
+flows — they are NOT optional. Each user story with a UI component MUST have a corresponding
+E2E test task. E2E tests MUST pass locally before a feature branch is considered complete.
+
 **Rationale**: Kids Goals handles financial-like point transactions and access control between
-parent and child accounts. Regressions here directly degrade trust.
+parent and child accounts. Regressions here directly degrade trust. Requiring E2E tasks in
+planning ensures tests are not deferred or forgotten.
 
 ## Technology Stack
 
@@ -91,7 +96,7 @@ parent and child accounts. Regressions here directly degrade trust.
 | E2E | Playwright | Critical user paths (login, chore completion, rewards, end-day) |
 
 All tests MUST be run in CI. Playwright tests MUST target a seeded local Supabase instance, not
-production.
+production. E2E tasks are MANDATORY in `tasks.md` for any feature with user-facing flows.
 
 ## Governance
 
@@ -103,4 +108,4 @@ This constitution supersedes all other conventions. Amendments require:
 All PRs MUST include a brief "Constitution Check" confirming no principles are violated. Any
 intentional deviation MUST be documented in the Complexity Tracking section of `plan.md`.
 
-**Version**: 1.0.1 | **Ratified**: 2026-04-25 | **Last Amended**: 2026-05-03
+**Version**: 1.0.2 | **Ratified**: 2026-04-25 | **Last Amended**: 2026-05-05

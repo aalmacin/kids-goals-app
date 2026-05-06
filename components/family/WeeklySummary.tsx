@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { WeeklySummaryEntry } from '@/lib/db/compare'
+import type { WeeklySummaryEntry } from '@/lib/db/family'
 
 interface WeeklySummaryProps {
   summary: WeeklySummaryEntry[]
@@ -21,7 +21,9 @@ export function WeeklySummary({ summary, currentKidId }: WeeklySummaryProps) {
           >
             <CardContent className="flex items-center gap-4 py-3">
               <span className="text-lg font-bold text-gray-400 w-6 text-center">{rank}</span>
-              <span className={`flex-1 font-medium ${isMe ? 'text-indigo-700' : 'text-gray-800'}`}>
+              <span
+                className={`flex-1 font-medium ${isMe ? 'text-indigo-700' : 'text-gray-800'}`}
+              >
                 {entry.name}
                 {isMe && (
                   <Badge variant="secondary" className="ml-2 text-xs">
@@ -30,7 +32,8 @@ export function WeeklySummary({ summary, currentKidId }: WeeklySummaryProps) {
                 )}
               </span>
               <span className="font-semibold text-gray-700">
-                {entry.weeklyPoints > 0 ? '+' : ''}{entry.weeklyPoints} ⭐
+                {entry.weeklyPoints > 0 ? '+' : ''}
+                {entry.weeklyPoints} ⭐
               </span>
             </CardContent>
           </Card>

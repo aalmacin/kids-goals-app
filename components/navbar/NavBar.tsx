@@ -52,8 +52,8 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
               <Link href="/calendar" className="hover:text-indigo-200 text-sm">
                 Calendar
               </Link>
-              <Link href="/compare" className="hover:text-indigo-200 text-sm">
-                Compare
+              <Link href="/family" className="hover:text-indigo-200 text-sm">
+                Family
               </Link>
             </>
           )}

@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export type SiblingKid = {
+export type FamilyMember = {
   id: string
   name: string
   points: number
@@ -12,6 +12,7 @@ export type DailyProgressEntry = {
   completedCount: number
   totalCount: number
   isRestDay: boolean
+  pointsEarnedToday: number
 }
 
 export type WeeklySummaryEntry = {
@@ -20,7 +21,7 @@ export type WeeklySummaryEntry = {
   weeklyPoints: number
 }
 
-export async function getSiblings(familyId: string): Promise<SiblingKid[]> {
+export async function getFamilyMembers(familyId: string): Promise<FamilyMember[]> {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('kids')
@@ -28,28 +29,52 @@ export async function getSiblings(familyId: string): Promise<SiblingKid[]> {
     .eq('family_id', familyId)
     .order('points', { ascending: false })
   if (error) throw error
-  return data.map((k) => ({ id: k.id, name: k.name, points: k.points }))
+  return (data ?? []).map((k) => ({ id: k.id, name: k.name, points: k.points }))
 }
 
 export async function getTodayDailyProgress(
-  siblings: SiblingKid[],
+  members: FamilyMember[],
   today: string
 ): Promise<DailyProgressEntry[]> {
-  if (siblings.length === 0) return []
+  if (members.length === 0) return []
 
   const supabase = await createSupabaseServerClient()
-  const kidIds = siblings.map((k) => k.id)
+  const kidIds = members.map((k) => k.id)
+  const nextDay = new Date(new Date(today).getTime() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0]
 
-  const { data: dayRecords, error: drError } = await supabase
-    .from('day_records')
-    .select('id, kid_id, is_rest_day')
-    .in('kid_id', kidIds)
-    .eq('date', today)
+  const [{ data: dayRecords, error: drError }, { data: activityEntries, error: alError }] =
+    await Promise.all([
+      supabase
+        .from('day_records')
+        .select('id, kid_id, is_rest_day')
+        .in('kid_id', kidIds)
+        .eq('date', today),
+      supabase
+        .from('activity_log')
+        .select('kid_id, points_delta')
+        .in('kid_id', kidIds)
+        .gte('created_at', today)
+        .lt('created_at', nextDay)
+        .not('points_delta', 'is', null),
+    ])
 
   if (drError) throw drError
+  if (alError) throw alError
 
   const dayRecordMap = new Map((dayRecords ?? []).map((dr) => [dr.kid_id, dr]))
   const dayRecordIds = (dayRecords ?? []).map((dr) => dr.id)
+
+  const todayPointsByKid = new Map<string, number>()
+  for (const entry of activityEntries ?? []) {
+    if (entry.kid_id && entry.points_delta !== null) {
+      todayPointsByKid.set(
+        entry.kid_id,
+        (todayPointsByKid.get(entry.kid_id) ?? 0) + entry.points_delta
+      )
+    }
+  }
 
   let completionsByDayRecord = new Map<string, { total: number; completed: number }>()
 
@@ -69,31 +94,31 @@ export async function getTodayDailyProgress(
     }
   }
 
-  return siblings.map((kid) => {
+  return members.map((kid) => {
     const dr = dayRecordMap.get(kid.id)
-    if (!dr) {
-      return { kidId: kid.id, name: kid.name, completedCount: 0, totalCount: 0, isRestDay: false }
-    }
-    const counts = completionsByDayRecord.get(dr.id) ?? { total: 0, completed: 0 }
+    const counts = dr
+      ? (completionsByDayRecord.get(dr.id) ?? { total: 0, completed: 0 })
+      : { total: 0, completed: 0 }
     return {
       kidId: kid.id,
       name: kid.name,
       completedCount: counts.completed,
       totalCount: counts.total,
-      isRestDay: dr.is_rest_day,
+      isRestDay: dr?.is_rest_day ?? false,
+      pointsEarnedToday: todayPointsByKid.get(kid.id) ?? 0,
     }
   })
 }
 
 export async function getWeeklyPointsSummary(
   familyId: string,
-  siblings: SiblingKid[],
+  members: FamilyMember[],
   sevenDaysAgo: string
 ): Promise<WeeklySummaryEntry[]> {
-  if (siblings.length === 0) return []
+  if (members.length === 0) return []
 
   const supabase = await createSupabaseServerClient()
-  const kidIds = siblings.map((k) => k.id)
+  const kidIds = members.map((k) => k.id)
 
   const { data, error } = await supabase
     .from('activity_log')
@@ -112,7 +137,7 @@ export async function getWeeklyPointsSummary(
     }
   }
 
-  return siblings
+  return members
     .map((kid) => ({
       kidId: kid.id,
       name: kid.name,

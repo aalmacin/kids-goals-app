@@ -1,9 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { SiblingKid } from '@/lib/db/compare'
+import type { FamilyMember } from '@/lib/db/family'
 
 interface LeaderboardProps {
-  kids: SiblingKid[]
+  kids: FamilyMember[]
   currentKidId: string
 }
 
@@ -29,9 +29,7 @@ export function Leaderboard({ kids, currentKidId }: LeaderboardProps) {
                   </Badge>
                 )}
               </span>
-              <span className="font-semibold text-gray-700">
-                {kid.points} ⭐
-              </span>
+              <span className="font-semibold text-gray-700">{kid.points} ⭐</span>
             </CardContent>
           </Card>
         )
