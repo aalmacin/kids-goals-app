@@ -10,18 +10,21 @@ export type Database = {
           id: string
           name: string
           parent_id: string
+          timezone: string
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           parent_id: string
+          timezone?: string
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
           parent_id?: string
+          timezone?: string
           created_at?: string
         }
         Relationships: NoRelationships
@@ -65,6 +68,7 @@ export type Database = {
           is_important: boolean
           icon: string
           deleted_at: string | null
+          allowed_days: number[] | null
           created_at: string
         }
         Insert: {
@@ -75,6 +79,7 @@ export type Database = {
           is_important?: boolean
           icon: string
           deleted_at?: string | null
+          allowed_days?: number[] | null
           created_at?: string
         }
         Update: {
@@ -85,6 +90,7 @@ export type Database = {
           is_important?: boolean
           icon?: string
           deleted_at?: string | null
+          allowed_days?: number[] | null
           created_at?: string
         }
         Relationships: NoRelationships

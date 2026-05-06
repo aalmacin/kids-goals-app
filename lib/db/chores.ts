@@ -5,12 +5,20 @@ export async function createChore(
   name: string,
   penalty: number,
   isImportant: boolean,
-  icon: string
+  icon: string,
+  allowedDays?: number[]
 ) {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('chores')
-    .insert({ family_id: familyId, name, penalty, is_important: isImportant, icon })
+    .insert({
+      family_id: familyId,
+      name,
+      penalty,
+      is_important: isImportant,
+      icon,
+      allowed_days: allowedDays && allowedDays.length > 0 ? allowedDays : null,
+    })
     .select()
     .single()
   if (error) throw error
@@ -31,7 +39,7 @@ export async function getChoreLibrary(familyId: string) {
 
 export async function updateChore(
   choreId: string,
-  updates: { name?: string; penalty?: number; is_important?: boolean; icon?: string }
+  updates: { name?: string; penalty?: number; is_important?: boolean; icon?: string; allowed_days?: number[] | null }
 ) {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase

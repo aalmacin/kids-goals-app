@@ -3,6 +3,8 @@ import { getFamilyByParentId } from '@/lib/db/families'
 import { getChoreLibrary } from '@/lib/db/chores'
 import { getKidsByFamily } from '@/lib/db/kids'
 import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreAction } from '@/lib/actions/chores'
+import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
+import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -87,11 +89,12 @@ export default async function ChoresPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-800">{chore.name}</p>
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex gap-2 mt-1 flex-wrap">
                       <Badge variant="outline" className="text-xs">-{chore.penalty} pts</Badge>
                       {chore.is_important && (
                         <Badge className="text-xs bg-orange-100 text-orange-700">Important</Badge>
                       )}
+                      <ChoreScheduleBadge allowedDays={chore.allowed_days ?? []} />
                     </div>
                   </div>
                 </div>
@@ -101,6 +104,12 @@ export default async function ChoresPage() {
                   </Button>
                 </form>
               </div>
+
+              {/* Day Schedule */}
+              <ChoreScheduleEditor
+                choreId={chore.id}
+                initialDays={chore.allowed_days ?? []}
+              />
 
               {/* Kid Assignments */}
               {kids.length > 0 && (

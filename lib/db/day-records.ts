@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/database.types'
+import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
 
 type DayRecord = Database['public']['Tables']['day_records']['Row']
 type ChoreCompletion = Database['public']['Tables']['chore_completions']['Row']
@@ -42,14 +43,19 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
     // Fetch chore details for each assignment
     const choreIds = (assignments ?? []).map((a) => a.chore_id)
     const { data: chores } = choreIds.length > 0
-      ? await supabase.from('chores').select('id, name, penalty, is_important, deleted_at').in('id', choreIds)
+      ? await supabase.from('chores').select('id, name, penalty, is_important, deleted_at, allowed_days').in('id', choreIds)
       : { data: [] }
 
     const choreMap = new Map((chores ?? []).map((c) => [c.id, c]))
+    const dayOfWeek = dayOfWeekFromDate(newRecord.date)
 
     const completions = (assignments ?? [])
       .map((a) => ({ assignment: a, chore: choreMap.get(a.chore_id) }))
-      .filter(({ chore }) => chore && !chore.deleted_at)
+      .filter(({ chore }) =>
+        chore &&
+        !chore.deleted_at &&
+        isChoreAvailableOn(chore.allowed_days, dayOfWeek)
+      )
       .map(({ assignment, chore }) => ({
         day_record_id: newRecord.id,
         chore_assignment_id: assignment.id,
@@ -90,14 +96,19 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
       const choreIds = newAssignments.map((a) => a.chore_id)
       const { data: chores } = await supabase
         .from('chores')
-        .select('id, name, penalty, is_important, deleted_at')
+        .select('id, name, penalty, is_important, deleted_at, allowed_days')
         .in('id', choreIds)
 
       const choreMap = new Map((chores ?? []).map((c) => [c.id, c]))
+      const backfillDayOfWeek = dayOfWeekFromDate(existing.date)
 
       const newCompletions = newAssignments
         .map((a) => ({ assignment: a, chore: choreMap.get(a.chore_id) }))
-        .filter(({ chore }) => chore && !chore.deleted_at)
+        .filter(({ chore }) =>
+          chore &&
+          !chore.deleted_at &&
+          isChoreAvailableOn(chore.allowed_days, backfillDayOfWeek)
+        )
         .map(({ assignment, chore }) => ({
           day_record_id: existing.id,
           chore_assignment_id: assignment.id,

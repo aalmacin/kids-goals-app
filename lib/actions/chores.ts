@@ -28,14 +28,27 @@ export async function getChoreLibraryAction() {
   return getChoreLibrary(family.id)
 }
 
+function parseAllowedDays(formData: FormData): number[] | undefined {
+  const raw = formData.get('allowedDays') as string | null
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return undefined
+    return parsed.filter((d) => typeof d === 'number' && d >= 0 && d <= 6)
+  } catch {
+    return undefined
+  }
+}
+
 export async function createChoreAction(formData: FormData) {
   const name = (formData.get('name') as string).trim()
   const penalty = Number(formData.get('penalty') ?? 0)
   const isImportant = formData.get('isImportant') === 'true'
   const icon = formData.get('icon') as string
+  const allowedDays = parseAllowedDays(formData)
 
   const { family } = await requireParentFamily()
-  await createChore(family.id, name, penalty, isImportant, icon)
+  await createChore(family.id, name, penalty, isImportant, icon, allowedDays)
   revalidatePath('/admin/chores')
 }
 
@@ -44,9 +57,30 @@ export async function updateChoreAction(choreId: string, formData: FormData) {
   const penalty = Number(formData.get('penalty') ?? 0)
   const isImportant = formData.get('isImportant') === 'true'
   const icon = formData.get('icon') as string
+  const allowedDays = parseAllowedDays(formData)
 
   await requireParentFamily()
-  await updateChore(choreId, { name, penalty, is_important: isImportant, icon })
+  await updateChore(choreId, {
+    name,
+    penalty,
+    is_important: isImportant,
+    icon,
+    allowed_days: allowedDays !== undefined
+      ? (allowedDays.length > 0 ? allowedDays : null)
+      : undefined,
+  })
+  revalidatePath('/admin/chores')
+}
+
+export async function updateChoreScheduleAction(
+  choreId: string,
+  allowedDays: number[]
+): Promise<void> {
+  await requireParentFamily()
+  const validDays = allowedDays.filter((d) => d >= 0 && d <= 6)
+  await updateChore(choreId, {
+    allowed_days: validDays.length > 0 ? validDays : null,
+  })
   revalidatePath('/admin/chores')
 }
 

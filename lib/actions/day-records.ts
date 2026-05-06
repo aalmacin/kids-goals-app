@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
 import { calculatePenalties, calculateEffortReward } from '@/lib/points'
+import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
 import type { ChoreCompletion } from '@/lib/types'
 
 async function getCurrentKid() {
@@ -30,11 +31,40 @@ export async function toggleChore(completionId: string, completed: boolean, dayR
   // Verify day is not ended
   const { data: dayRecord } = await supabase
     .from('day_records')
-    .select('ended_at, kid_id')
+    .select('ended_at, kid_id, date')
     .eq('id', dayRecordId)
     .single()
 
   if (dayRecord?.ended_at) throw new Error('Day has already ended')
+
+  // Enforce chore schedule server-side (only block completion, not un-completion)
+  if (completed) {
+    const { data: completionRow } = await supabase
+      .from('chore_completions')
+      .select('chore_assignment_id')
+      .eq('id', completionId)
+      .single()
+
+    if (completionRow) {
+      const { data: assignment } = await supabase
+        .from('chore_assignments')
+        .select('chore_id')
+        .eq('id', completionRow.chore_assignment_id)
+        .single()
+
+      if (assignment) {
+        const { data: chore } = await supabase
+          .from('chores')
+          .select('allowed_days')
+          .eq('id', assignment.chore_id)
+          .single()
+
+        if (chore && !isChoreAvailableOn(chore.allowed_days, dayOfWeekFromDate(dayRecord!.date))) {
+          throw new Error('Chore not available on this day')
+        }
+      }
+    }
+  }
 
   const completion = await toggleChoreCompletion(completionId, completed)
 
