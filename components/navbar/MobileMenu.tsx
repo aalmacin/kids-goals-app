@@ -18,10 +18,12 @@ export function MobileMenu({ session, familyName }: MobileMenuProps) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white md:hidden min-h-[44px] min-w-[44px]">
-          <Menu className="h-6 w-6" />
-        </Button>
+      <SheetTrigger
+        render={
+          <Button variant="ghost" size="icon" className="text-white md:hidden min-h-[44px] min-w-[44px]" />
+        }
+      >
+        <Menu className="h-6 w-6" />
       </SheetTrigger>
       <SheetContent side="right">
         {familyName && (

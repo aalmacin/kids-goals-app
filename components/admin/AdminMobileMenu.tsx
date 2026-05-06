@@ -16,10 +16,12 @@ export function AdminMobileMenu({ familyExists }: AdminMobileMenuProps) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white md:hidden min-h-[44px] min-w-[44px]">
-          <Menu className="h-6 w-6" />
-        </Button>
+      <SheetTrigger
+        render={
+          <Button variant="ghost" size="icon" className="text-white md:hidden min-h-[44px] min-w-[44px]" />
+        }
+      >
+        <Menu className="h-6 w-6" />
       </SheetTrigger>
       <SheetContent side="right">
         <nav className="flex flex-col gap-4">
