@@ -3,6 +3,7 @@ import { logout } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { AppLogo } from './AppLogo'
 import { PointsBadge } from './PointsBadge'
+import { MobileMenu } from './MobileMenu'
 import type { SessionUser } from '@/lib/types'
 
 interface NavBarProps {
@@ -27,47 +28,51 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
             <PointsBadge points={kidPoints} kidId={kidId} />
           )}
 
-          {session.role === 'parent' && (
-            <>
-              <Link href="/admin" className="hover:text-indigo-200 text-sm">
-                Admin
-              </Link>
-              <Link href="/activity" className="hover:text-indigo-200 text-sm">
-                Activity
-              </Link>
-            </>
-          )}
+          <div className="hidden md:flex items-center gap-4">
+            {session.role === 'parent' && (
+              <>
+                <Link href="/admin" className="hover:text-indigo-200 text-sm">
+                  Admin
+                </Link>
+                <Link href="/activity" className="hover:text-indigo-200 text-sm">
+                  Activity
+                </Link>
+              </>
+            )}
 
-          {session.role === 'kid' && (
-            <>
-              <Link href="/" className="hover:text-indigo-200 text-sm">
-                Today
-              </Link>
-              <Link href="/rewards" className="hover:text-indigo-200 text-sm">
-                Rewards
-              </Link>
-              <Link href="/activity" className="hover:text-indigo-200 text-sm">
-                Activity
-              </Link>
-              <Link href="/calendar" className="hover:text-indigo-200 text-sm">
-                Calendar
-              </Link>
-              <Link href="/family" className="hover:text-indigo-200 text-sm">
-                Family
-              </Link>
-            </>
-          )}
+            {session.role === 'kid' && (
+              <>
+                <Link href="/" className="hover:text-indigo-200 text-sm">
+                  Today
+                </Link>
+                <Link href="/rewards" className="hover:text-indigo-200 text-sm">
+                  Rewards
+                </Link>
+                <Link href="/activity" className="hover:text-indigo-200 text-sm">
+                  Activity
+                </Link>
+                <Link href="/calendar" className="hover:text-indigo-200 text-sm">
+                  Calendar
+                </Link>
+                <Link href="/family" className="hover:text-indigo-200 text-sm">
+                  Family
+                </Link>
+              </>
+            )}
 
-          <form action={logout}>
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              className="text-indigo-700 border-white bg-white hover:bg-indigo-50"
-            >
-              Log Out
-            </Button>
-          </form>
+            <form action={logout}>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="text-indigo-700 border-white bg-white hover:bg-indigo-50"
+              >
+                Log Out
+              </Button>
+            </form>
+          </div>
+
+          <MobileMenu session={session} familyName={familyName} />
         </div>
       </div>
     </nav>
