@@ -33,9 +33,9 @@ N/A — all user stories are independent UI-only changes with no shared prerequi
 
 ### Implementation for User Story 1
 
-- [ ] T001 [P] [US1] Create `components/navbar/MobileMenu.tsx` — new `'use client'` component accepting `session`, `kidPoints`, `kidId`, `familyName` props; uses `useState` to control Sheet open/close; renders `<Button variant="ghost" size="icon">` with `<Menu>` icon as `SheetTrigger`; Sheet side="right" contains stacked nav links and logout form
-- [ ] T002 [US1] Modify `components/navbar/NavBar.tsx` — add `hidden md:flex` to existing desktop nav links container; add `<MobileMenu>` component with `md:hidden` class passing all required props
-- [ ] T003 [P] [US1] Modify `app/(dashboard)/layout.tsx` — change `p-6` to `p-4 md:p-6` on the `<main>` container
+- [x] T001 [P] [US1] Create `components/navbar/MobileMenu.tsx` — new `'use client'` component accepting `session`, `kidPoints`, `kidId`, `familyName` props; uses `useState` to control Sheet open/close; renders `<Button variant="ghost" size="icon">` with `<Menu>` icon as `SheetTrigger`; Sheet side="right" contains stacked nav links and logout form
+- [x] T002 [US1] Modify `components/navbar/NavBar.tsx` — add `hidden md:flex` to existing desktop nav links container; add `<MobileMenu>` component with `md:hidden` class passing all required props
+- [x] T003 [P] [US1] Modify `app/(dashboard)/layout.tsx` — change `p-6` to `p-4 md:p-6` on the `<main>` container
 
 **Checkpoint**: Dashboard is fully usable on a 375px phone — no horizontal scroll, hamburger opens all nav links.
 
@@ -49,9 +49,9 @@ N/A — all user stories are independent UI-only changes with no shared prerequi
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Create `components/admin/AdminMobileMenu.tsx` — new `'use client'` component accepting `familyExists: boolean` prop; same Sheet + hamburger pattern as `MobileMenu`; Sheet contains admin nav links (`Kids`, `Chores`, `Effort`, `Family`, `Rewards`) conditionally rendered based on `familyExists`
-- [ ] T005 [US2] Modify `app/(admin)/admin/layout.tsx` — add `hidden md:flex` to desktop nav links; add `<AdminMobileMenu familyExists={...}>` with `md:hidden`; change main container padding from `p-6` to `p-4 md:p-6`
-- [ ] T006 [US2] Modify `app/(admin)/admin/kids/page.tsx` — change kid card layout from `flex items-center justify-between p-4` to `p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3`; wrap action controls (points adjust form + delete button) in `<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">`
+- [x] T004 [P] [US2] Create `components/admin/AdminMobileMenu.tsx` — new `'use client'` component accepting `familyExists: boolean` prop; same Sheet + hamburger pattern as `MobileMenu`; Sheet contains admin nav links (`Kids`, `Chores`, `Effort`, `Family`, `Rewards`) conditionally rendered based on `familyExists`
+- [x] T005 [US2] Modify `app/(admin)/admin/layout.tsx` — add `hidden md:flex` to desktop nav links; add `<AdminMobileMenu familyExists={...}>` with `md:hidden`; change main container padding from `p-6` to `p-4 md:p-6`
+- [x] T006 [US2] Modify `app/(admin)/admin/kids/page.tsx` — change kid card layout from `flex items-center justify-between p-4` to `p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3`; wrap action controls (points adjust form + delete button) in `<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">`
 
 **Checkpoint**: Admin is fully usable on mobile — hamburger opens all admin nav links; kid cards are readable and all controls accessible on 375px.
 
@@ -65,8 +65,8 @@ N/A — all user stories are independent UI-only changes with no shared prerequi
 
 ### Implementation for User Story 3
 
-- [ ] T007 [P] [US3] Audit login page (locate under `app/` — search for the login route) — ensure form container uses `w-full max-w-md mx-auto px-4` or equivalent; verify all inputs, labels, and submit button have no fixed widths that overflow at 320px; apply Tailwind responsive fixes as needed
-- [ ] T008 [P] [US3] Audit kid-login page (locate under `app/` — search for kid-login or kids login route) — apply same responsive fixes: fluid container width, no overflow at 320px, inputs and buttons meet 44px tap target minimum
+- [x] T007 [P] [US3] Audit login page (locate under `app/` — search for the login route) — ensure form container uses `w-full max-w-md mx-auto px-4` or equivalent; verify all inputs, labels, and submit button have no fixed widths that overflow at 320px; apply Tailwind responsive fixes as needed
+- [x] T008 [P] [US3] Audit kid-login page (locate under `app/` — search for kid-login or kids login route) — apply same responsive fixes: fluid container width, no overflow at 320px, inputs and buttons meet 44px tap target minimum
 
 **Checkpoint**: Both login pages render correctly and are fully functional at 320px without pinch-to-zoom.
 
@@ -76,7 +76,7 @@ N/A — all user stories are independent UI-only changes with no shared prerequi
 
 **Purpose**: E2E test coverage across all user stories
 
-- [ ] T009 Create `tests/e2e/mobile-responsive.spec.ts` — Playwright tests at `{ width: 375, height: 812 }` viewport; use `page.setViewportSize` in `beforeEach`; cover: (1) login page renders without horizontal scroll — assert `document.documentElement.scrollWidth <= 375`, (2) dashboard hamburger button visible and opens Sheet drawer, (3) admin hamburger button visible and opens Sheet drawer
+- [x] T009 Create `__tests__/e2e/mobile-responsive.spec.ts` — Playwright tests at `{ width: 375, height: 812 }` viewport; use `page.setViewportSize` in `beforeEach`; cover: (1) login page renders without horizontal scroll — assert `document.documentElement.scrollWidth <= 375`, (2) dashboard hamburger button visible and opens Sheet drawer, (3) admin hamburger button visible and opens Sheet drawer
 
 ---
 

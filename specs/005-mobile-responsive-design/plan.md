@@ -159,4 +159,8 @@ Verify no horizontal scroll: `expect(await page.evaluate(() => document.document
 
 ## Complexity Tracking
 
-No constitution violations. No complexity justification needed.
+### Deviation: `useState` for Sheet toggle state (Principle III)
+
+`MobileMenu` and `AdminMobileMenu` use `useState` to control `Sheet` open/close rather than TanStack Store.
+
+**Justification**: The open/close boolean is ephemeral, component-local UI state with no need to be shared, persisted, or observed outside the component. TanStack Store is intended for application-level state (user data, route state, server cache) not for single-component toggle primitives. Using TanStack Store here would introduce an unshared store atom with a single subscriber — adding indirection without benefit. The shadcn `Sheet` (Radix Dialog) exposes a controlled `open`/`onOpenChange` API that naturally maps to a single `useState`.

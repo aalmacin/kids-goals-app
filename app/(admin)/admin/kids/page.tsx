@@ -84,7 +84,7 @@ export default async function KidsPage() {
           <p className="text-gray-500 text-center py-8">No kids yet. Add one above!</p>
         )}
         {kids.map((kid) => (
-          <Card key={kid.id} className="flex items-center justify-between p-4">
+          <Card key={kid.id} className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-4">
               <div>
                 <p className="font-semibold text-gray-800">{kid.name}</p>
@@ -102,7 +102,7 @@ export default async function KidsPage() {
                 {kid.points} pts
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <form
                 action={async (formData: FormData) => {
                   'use server'
@@ -126,7 +126,7 @@ export default async function KidsPage() {
                   maxLength={500}
                   className="w-36 h-8 text-sm"
                 />
-                <Button type="submit" size="sm" variant="outline">
+                <Button type="submit" size="sm" variant="outline" className="min-h-[44px]">
                   Adjust
                 </Button>
               </form>
@@ -135,6 +135,7 @@ export default async function KidsPage() {
                   type="submit"
                   variant="destructive"
                   size="sm"
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
