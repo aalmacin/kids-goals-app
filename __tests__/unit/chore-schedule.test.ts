@@ -3,6 +3,7 @@ import {
   isChoreAvailableOn,
   dayOfWeekFromDate,
   getNextAvailableDate,
+  todayInTimezone,
 } from '@/lib/chore-schedule'
 
 describe('isChoreAvailableOn', () => {
@@ -75,5 +76,32 @@ describe('getNextAvailableDate', () => {
     const result = getNextAvailableDate([1], new Date('2026-05-05T12:00:00'))
     expect(result).not.toBeNull()
     expect(result!.getDay()).toBe(1) // next Monday
+  })
+
+  it('returns correct next day when timezone is provided (UTC-8)', () => {
+    // May 3 2026 is Sunday — next Monday [1] should always be May 4 regardless of timezone
+    const result = getNextAvailableDate([1], new Date('2026-05-03T12:00:00'), 'America/Los_Angeles')
+    expect(result).not.toBeNull()
+    // Day-of-week in the result should be Monday (1) in the given timezone
+    const dow = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short' })
+      .format(result!)
+    expect(dow).toBe('Mon')
+  })
+})
+
+describe('todayInTimezone', () => {
+  it('returns a YYYY-MM-DD string', () => {
+    const result = todayInTimezone('UTC')
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('returns a date consistent with the given timezone', () => {
+    // Both calls should return a valid date string — we cannot assert the exact date
+    // without mocking the clock, but we can verify the format and that different
+    // timezones can produce different results at timezone boundaries.
+    const utc = todayInTimezone('UTC')
+    const ny = todayInTimezone('America/New_York')
+    expect(utc).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(ny).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

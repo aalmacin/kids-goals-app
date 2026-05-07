@@ -5,7 +5,7 @@ import { ChoreList } from '@/components/chore-list/ChoreList'
 import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
-import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate } from '@/lib/chore-schedule'
+import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate, todayInTimezone } from '@/lib/chore-schedule'
 import type { ChoreCompletion, EffortLevel } from '@/lib/types'
 
 export default async function DashboardPage({
@@ -29,8 +29,16 @@ export default async function DashboardPage({
     redirect('/admin')
   }
 
+  const { data: family } = await supabase
+    .from('families')
+    .select('timezone')
+    .eq('id', kid.family_id)
+    .single()
+
+  const familyTimezone = family?.timezone ?? 'UTC'
+
   const params = await searchParams
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayInTimezone(familyTimezone)
   const date = params.date ?? today
 
   const dayRecord = await getOrCreateDayRecord(kid.id, date)
@@ -69,7 +77,7 @@ export default async function DashboardPage({
       )
     })
     .map((chore) => {
-      const nextDate = getNextAvailableDate(chore.allowed_days, new Date(date + 'T12:00:00'))
+      const nextDate = getNextAvailableDate(chore.allowed_days, new Date(date + 'T12:00:00'), familyTimezone)
       return {
         id: chore.id,
         name: chore.name,

@@ -92,7 +92,20 @@ Repository root layout (Next.js App Router, see plan.md for full structure):
 
 ---
 
-## Phase 6: Polish & Cross-Cutting Concerns
+## Phase 6: Timezone Correctness (FR-009)
+
+**Problem**: `today` was computed as UTC date (`new Date().toISOString().split('T')[0]`), causing wrong day-of-week for families in non-UTC timezones. Family timezone was stored in DB but never used.
+
+- [x] T018 Add `todayInTimezone(timezone: string): string` to `lib/chore-schedule.ts` — returns current date as `YYYY-MM-DD` in the given IANA timezone using `Intl.DateTimeFormat('en-CA')`
+- [x] T019 Update `getNextAvailableDate` in `lib/chore-schedule.ts` to accept optional `timezone?: string` parameter; compute day-of-week via `Intl.DateTimeFormat` when timezone is provided, falling back to `getDay()` for backward compatibility
+- [x] T020 Update `app/(dashboard)/page.tsx` — fetch `families.timezone` via `kid.family_id`; replace UTC `today` computation with `todayInTimezone(familyTimezone)`; pass `familyTimezone` to `getNextAvailableDate`
+- [x] T021 Add unit tests for `todayInTimezone` and timezone-parameterized `getNextAvailableDate` in `__tests__/unit/chore-schedule.test.ts`
+
+**Checkpoint**: "Today" is now always the correct local date for the family. Schedule availability and chore day display are aligned to the parent's configured timezone.
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
 
 - [x] T015 [P] Create `__tests__/unit/chore-schedule.test.ts` — unit tests for all cases in quickstart.md: `isChoreAvailableOn` (null, empty, weekday schedule), `dayOfWeekFromDate`, `getNextAvailableDate`
 - [x] T016 [P] Create `__tests__/integration/chore-schedule.test.ts` — integration tests against local Supabase verifying: `updateChoreScheduleAction` persists schedule; `toggleChore` blocks completion on wrong day; `getOrCreateDayRecord` does not seed completions for schedule-blocked chores
@@ -109,7 +122,8 @@ Repository root layout (Next.js App Router, see plan.md for full structure):
 - **US1 (Phase 3)**: Requires Phase 2 — T005 → T006 → T007 → T008 (sequential within story)
 - **US2 (Phase 4)**: Requires Phase 2 + T003 — T009 → T010 are sequential; T011 and T012 depend on T011 being done first
 - **US3 (Phase 5)**: Requires Phase 2 — T013 and T014 are independent of US1/US2 implementation
-- **Polish (Phase 6)**: Requires all user stories complete
+- **Timezone (Phase 6)**: Requires Phase 2 (T003) — T018 → T019 → T020; T021 can run in parallel with T020
+- **Polish (Phase 7)**: Requires all user stories and Phase 6 complete
 
 ### User Story Dependencies
 
