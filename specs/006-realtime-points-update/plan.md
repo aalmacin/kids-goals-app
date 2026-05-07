@@ -1,35 +1,40 @@
 # Implementation Plan: Realtime Points Update on Day Completion
 
-**Branch**: `006-realtime-points-update` | **Date**: 2026-05-06 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `specs/006-realtime-points-update/spec.md`
+**Branch**: `006-realtime-points-update` | **Date**: 2026-05-07 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/006-realtime-points-update/spec.md`
 
 ## Summary
 
-When a kid ends the day, the points badge in the navbar must reflect the updated balance immediately. The root cause is that `PointsBadge` uses `useState(initialPoints)` — React only evaluates this initial value on mount, so subsequent server re-renders (triggered by `revalidatePath`) send a fresh `initialPoints` prop that is silently ignored. The fix is a one-line `useEffect` that syncs `initialPoints` to local state whenever the server sends a new value, while preserving the existing Supabase Realtime subscription as the primary real-time update channel.
+Two bugs prevent immediate points updates after day completion: (1) `PointsBadge` uses `useState` which ignores updated props from server re-renders, and (2) `revalidatePath('/dashboard')` targets a URL that doesn't exist in the (dashboard) route group. Additionally, the "Undo End Day" feature (User Story 2) does not exist and must be built. The fix adds a `useEffect` prop-sync to `PointsBadge`, corrects `revalidatePath` targets, adds an `undoEndDay` server action with event-sourcing reversal entries, and renders `UndoEndDayButton` on the dashboard page.
 
 ## Technical Context
 
-**Language/Version**: TypeScript (strict mode)
-**Primary Dependencies**: Next.js (App Router, Server Actions), Supabase Realtime, TanStack Query, shadcn/ui
-**Storage**: Supabase PostgreSQL — `kids.points` updated by `apply_points_delta` DB trigger on `activity_log` inserts
-**Testing**: Playwright (E2E), Vitest (unit/integration)
-**Target Platform**: Web (Next.js)
+**Language/Version**: TypeScript 5, strict mode
+**Primary Dependencies**: Next.js 16.2.4 (App Router, Server Actions), Supabase (Auth + PostgreSQL + Realtime), TanStack Query 5, TanStack Store 0.11, shadcn/ui
+**Storage**: Supabase PostgreSQL with RLS; event-sourced `kids.points` via `activity_log` + DB trigger
+**Testing**: Vitest (unit + integration), Playwright (E2E)
+**Target Platform**: Web (PWA, Next.js App Router)
 **Project Type**: Web application
-**Performance Goals**: Points badge updates within 1 second of day completion
-**Constraints**: No new API routes; no polling; Realtime subscription must remain
-**Scale/Scope**: Single component fix (`PointsBadge`), single new E2E test case
+**Performance Goals**: Points display updates within 1 second of day completion (FR-003, SC-001)
+**Constraints**: No API routes for data mutations; all mutations via Server Actions; Supabase Realtime for live data
+**Scale/Scope**: Single-family app; one kid session at a time per screen
 
 ## Constitution Check
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns — no API routes for data, use Server Actions | ✅ Pass | No API routes added; `endDay` server action unchanged |
-| II. Supabase Patterns — Realtime for live data | ✅ Pass | Realtime subscription preserved; `useEffect` sync is an additional fallback |
-| III. TanStack First — client state via TanStack Store/Query | ✅ Pass | Fix stays within existing `useState` / Realtime pattern; no new custom hooks |
-| IV. shadcn Components First | ✅ Pass | No new UI components introduced |
-| V. Test Coverage — E2E for user-facing flows | ✅ Required | E2E test for points update after day completion is a mandatory task |
+| I. Next.js — Server Actions only, no `/api` mutation routes | ✅ Pass | `undoEndDay` is a Server Action; no new API routes |
+| I. Next.js — Nonce-based CSP | ✅ Pass | Existing nonce setup unchanged |
+| II. Supabase — Typed client + RLS | ✅ Pass | All DB access via typed Supabase client; RLS unchanged |
+| II. Supabase — Realtime for live data | ✅ Pass | Existing Realtime subscription in `PointsBadge` and `FamilyPageClient` is kept; `useEffect` fix makes it effective |
+| III. TanStack First — Query for server state | ✅ Pass | No new custom fetch hooks; `FamilyPageClient` already uses TanStack Query |
+| III. TanStack First — Store for UI state | ✅ Pass | `UndoEndDayButton` uses `useTransition` (React primitive for pending state), not custom state management |
+| IV. shadcn First | ✅ Pass | `UndoEndDayButton` uses `AlertDialog`, `Button` from shadcn |
+| V. Test Coverage — E2E for user-facing flows | ✅ Pass | E2E tests included as explicit tasks (both user stories) |
+| V. Test Coverage — Unit tests for business logic | ✅ Pass | No new business logic functions; existing `points.ts` tests unchanged |
+| V. Test Coverage — Integration tests for server actions | ✅ Pass | Integration test for `undoEndDay` included |
 
-No violations. Complexity Tracking section omitted.
+**Violations requiring justification**: None.
 
 ## Project Structure
 
@@ -38,42 +43,90 @@ No violations. Complexity Tracking section omitted.
 ```text
 specs/006-realtime-points-update/
 ├── plan.md              # This file
-├── research.md          # Root cause analysis and decision log
-├── data-model.md        # Entity summary (no schema changes)
-└── tasks.md             # Task list (generated by /speckit-tasks)
+├── research.md          # Root cause analysis and decisions
+├── data-model.md        # Schema changes and state flows
+├── contracts/
+│   └── server-actions.md
+└── tasks.md             # Generated by /speckit-tasks
 ```
 
-### Source Code (affected files)
+### Source Code Changes
 
 ```text
-components/navbar/PointsBadge.tsx   ← sole code change (add useEffect)
-__tests__/e2e/us6-end-day.spec.ts   ← add points-update E2E test case
+supabase/migrations/
+└── 0010_undo_end_day.sql           # New action_type values in CHECK constraint
+
+lib/actions/
+└── day-records.ts                  # Fix revalidatePath; add undoEndDay action
+
+components/end-day/
+├── EndDayButton.tsx                # Update description text (no longer says "cannot be undone")
+└── UndoEndDayButton.tsx            # New component
+
+components/navbar/
+└── PointsBadge.tsx                 # Add useEffect to sync initialPoints prop
+
+app/(dashboard)/
+└── page.tsx                        # Render UndoEndDayButton when isEnded
+
+__tests__/e2e/
+└── us12-realtime-points.spec.ts    # E2E: US1 (immediate update) + US2 (undo end day)
+
+__tests__/integration/
+└── undo-end-day.test.ts            # Integration: undoEndDay action contract
 ```
 
-No new files are required. No server-side or database changes are needed.
+## Complexity Tracking
 
-## Architecture
+> No constitution violations.
 
-### Update Channels for `PointsBadge`
+## Implementation Notes
 
-After the fix, two channels keep `PointsBadge` in sync:
+### Migration 0010
 
-| Channel | Trigger | When it fires |
-|---------|---------|---------------|
-| Supabase Realtime | `kids` table UPDATE event | When `apply_points_delta` DB trigger writes a non-null delta (penalty or effort reward) |
-| RSC prop sync (`useEffect`) | `initialPoints` prop changes after `revalidatePath` re-render | Always, including the no-penalty / no-effort case |
+```sql
+ALTER TABLE activity_log DROP CONSTRAINT activity_log_action_type_check;
+ALTER TABLE activity_log ADD CONSTRAINT activity_log_action_type_check
+  CHECK (action_type IN (
+    'chore_completed', 'chore_unchecked', 'rest_day_purchased',
+    'reward_redeemed', 'day_ended', 'penalty_applied', 'effort_awarded',
+    'chore_assigned', 'chore_unassigned', 'manual_adjustment',
+    'day_undone', 'penalty_reversed', 'effort_reversed'
+  ));
+```
 
-Both channels set the same final value; no conflict or double-flash occurs.
+### `undoEndDay` logic outline
 
-### Fix in `PointsBadge`
+```
+1. Verify authenticated kid owns the day record and day is ended
+2. SELECT from activity_log WHERE kid_id = kidId
+     AND action_type IN ('penalty_applied', 'effort_awarded')
+     AND points_delta IS NOT NULL
+     -- narrow to this day by joining day_records or filtering by metadata
+3. For each penalty_applied row: INSERT penalty_reversed with points_delta = -row.points_delta
+4. For each effort_awarded row:  INSERT effort_reversed  with points_delta = -row.points_delta
+5. INSERT day_undone with points_delta = null
+6. UPDATE day_records SET ended_at = null, effort_level_id = null WHERE id = dayRecordId
+7. revalidatePath('/')
+```
 
-Add a `useEffect` that updates local state whenever the server sends a new `initialPoints` value:
+> Note: `activity_log` doesn't have a direct `day_record_id` foreign key. The metadata JSONB column stores `{ day_record_id: <id> }` for `penalty_applied` and `effort_awarded` entries. Filter on `metadata->>'day_record_id' = dayRecordId`.
+
+### `PointsBadge` fix
 
 ```tsx
-// Sync prop updates from server re-renders (e.g. after revalidatePath)
 useEffect(() => {
   setPoints(initialPoints)
 }, [initialPoints])
 ```
 
-This is the only code change. The Realtime subscription, the `useState`, the `queryClient.invalidateQueries` call, and all other behaviour remain identical.
+Place after the existing `useState` declaration.
+
+### `EndDayButton` dialog text
+
+Remove "This cannot be undone." from the description since undo is now available.
+
+### Dashboard page (`app/(dashboard)/page.tsx`)
+
+Replace the "Day Ended ✓" static badge with `UndoEndDayButton` when `isEnded`.
+The static ended indicator can move inside `UndoEndDayButton` or remain alongside it.
