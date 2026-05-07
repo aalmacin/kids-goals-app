@@ -16,6 +16,10 @@ export function PointsBadge({ points: initialPoints, kidId }: PointsBadgeProps) 
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    setPoints(initialPoints)
+  }, [initialPoints])
+
+  useEffect(() => {
     const supabase = createSupabaseBrowserClient()
     const channel = supabase
       .channel(`kid-points-${kidId}`)

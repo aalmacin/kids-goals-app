@@ -4,6 +4,7 @@ import { getOrCreateDayRecord } from '@/lib/db/day-records'
 import { ChoreList } from '@/components/chore-list/ChoreList'
 import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
+import { UndoEndDayButton } from '@/components/end-day/UndoEndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
 import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate, todayInTimezone } from '@/lib/chore-schedule'
 import type { ChoreCompletion, EffortLevel } from '@/lib/types'
@@ -135,8 +136,11 @@ export default async function DashboardPage({
           )}
         </div>
         {isEnded && (
-          <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
-            Day Ended ✓
+          <div className="flex items-center gap-3">
+            <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
+              Day Ended ✓
+            </div>
+            <UndoEndDayButton dayRecordId={dayRecord.id} />
           </div>
         )}
       </div>

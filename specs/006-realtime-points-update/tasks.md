@@ -26,7 +26,7 @@ No project scaffolding required — this feature modifies an existing Next.js + 
 
 **⚠️ CRITICAL**: US2 implementation cannot begin until T001 is complete.
 
-- [ ] T001 Create `supabase/migrations/0010_undo_end_day.sql` — drop and re-add the `activity_log_action_type_check` constraint to include `day_undone`, `penalty_reversed`, `effort_reversed` (see data-model.md for exact SQL)
+- [x] T001 Create `supabase/migrations/0010_undo_end_day.sql` — drop and re-add the `activity_log_action_type_check` constraint to include `day_undone`, `penalty_reversed`, `effort_reversed` (see data-model.md for exact SQL)
 
 **Checkpoint**: Migration 0010 is written and `bun run db:reset` succeeds — US2 implementation can now begin.
 
@@ -40,12 +40,12 @@ No project scaffolding required — this feature modifies an existing Next.js + 
 
 ### E2E Test for User Story 1
 
-- [ ] T002 [US1] Write E2E test in `__tests__/e2e/us12-realtime-points.spec.ts` covering: end day → verify navbar badge updates immediately without navigation (SC-001, SC-002)
+- [x] T002 [US1] Write E2E test in `__tests__/e2e/us12-realtime-points.spec.ts` covering: end day → verify navbar badge updates immediately without navigation (SC-001, SC-002)
 
 ### Implementation for User Story 1
 
-- [ ] T003 [P] [US1] Fix `PointsBadge` in `components/navbar/PointsBadge.tsx` — add `useEffect(() => { setPoints(initialPoints) }, [initialPoints])` after the existing `useState` declaration so updated server-rendered props are reflected on re-render
-- [ ] T004 [P] [US1] Fix `revalidatePath` targets in `lib/actions/day-records.ts` — change all three occurrences of `revalidatePath('/dashboard')` (in `toggleChore`, `declareRestDay`, and `endDay`) to `revalidatePath('/')` so the layout cache is correctly invalidated
+- [x] T003 [P] [US1] Fix `PointsBadge` in `components/navbar/PointsBadge.tsx` — add `useEffect(() => { setPoints(initialPoints) }, [initialPoints])` after the existing `useState` declaration so updated server-rendered props are reflected on re-render
+- [x] T004 [P] [US1] Fix `revalidatePath` targets in `lib/actions/day-records.ts` — change all three occurrences of `revalidatePath('/dashboard')` (in `toggleChore`, `declareRestDay`, and `endDay`) to `revalidatePath('/')` so the layout cache is correctly invalidated
 
 **Checkpoint**: US1 is complete when T002–T004 are done and the E2E test passes. Points badge updates immediately on day completion.
 
@@ -59,12 +59,12 @@ No project scaffolding required — this feature modifies an existing Next.js + 
 
 ### Tests for User Story 2
 
-- [ ] T005 [P] [US2] Write integration test in `__tests__/integration/undo-end-day.test.ts` — test that `undoEndDay` correctly inserts reversal log entries, resets `day_records.ended_at` to null, and recalculates `kids.points` (depends on T001 migration being applied)
-- [ ] T006 [P] [US2] Extend E2E test file `__tests__/e2e/us12-realtime-points.spec.ts` — add scenario: end day → undo end day (confirm dialog) → verify day re-opens and badge reverts immediately (FR-004, FR-006, FR-007)
+- [x] T005 [P] [US2] Write integration test in `__tests__/integration/undo-end-day.test.ts` — test that `undoEndDay` correctly inserts reversal log entries, resets `day_records.ended_at` to null, and recalculates `kids.points` (depends on T001 migration being applied)
+- [x] T006 [P] [US2] Extend E2E test file `__tests__/e2e/us12-realtime-points.spec.ts` — add scenario: end day → undo end day (confirm dialog) → verify day re-opens and badge reverts immediately (FR-004, FR-006, FR-007)
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Implement `undoEndDay` server action in `lib/actions/day-records.ts` (depends on T001):
+- [x] T007 [US2] Implement `undoEndDay` server action in `lib/actions/day-records.ts` (depends on T001):
   - Verify authenticated kid owns the day record and `ended_at IS NOT NULL`
   - Fetch `activity_log` rows where `metadata->>'day_record_id' = dayRecordId` and `action_type IN ('penalty_applied', 'effort_awarded')`
   - Insert `penalty_reversed` with `points_delta = -(original delta)` for each `penalty_applied` row
@@ -72,9 +72,9 @@ No project scaffolding required — this feature modifies an existing Next.js + 
   - Insert `day_undone` with `points_delta = null`
   - Update `day_records SET ended_at = null, effort_level_id = null`
   - Call `revalidatePath('/')`
-- [ ] T008 [P] [US2] Create `components/end-day/UndoEndDayButton.tsx` — shadcn `AlertDialog` with confirmation message ("Undo ending this day? Your chore selections stay, but your points from this completion will be reversed."), calls `undoEndDay(dayRecordId)` via `useTransition`, disabled while pending (depends on T007 signature being defined)
-- [ ] T009 [P] [US2] Update `EndDayButton` in `components/end-day/EndDayButton.tsx` — remove "This cannot be undone." from the `AlertDialogDescription` (FR-007 undo is now available)
-- [ ] T010 [US2] Update `app/(dashboard)/page.tsx` — render `UndoEndDayButton` when `isEnded` is true (alongside or replacing the static "Day Ended ✓" badge); pass `dayRecordId={dayRecord.id}` (depends on T008)
+- [x] T008 [P] [US2] Create `components/end-day/UndoEndDayButton.tsx` — shadcn `AlertDialog` with confirmation message ("Undo ending this day? Your chore selections stay, but your points from this completion will be reversed."), calls `undoEndDay(dayRecordId)` via `useTransition`, disabled while pending (depends on T007 signature being defined)
+- [x] T009 [P] [US2] Update `EndDayButton` in `components/end-day/EndDayButton.tsx` — remove "This cannot be undone." from the `AlertDialogDescription` (FR-007 undo is now available)
+- [x] T010 [US2] Update `app/(dashboard)/page.tsx` — render `UndoEndDayButton` when `isEnded` is true (alongside or replacing the static "Day Ended ✓" badge); pass `dayRecordId={dayRecord.id}` (depends on T008)
 
 **Checkpoint**: US2 is complete when T005–T010 are done and both E2E scenarios pass. Day can be undone from today's view and from calendar-linked day view (`/?date=<past-date>`).
 
@@ -82,8 +82,8 @@ No project scaffolding required — this feature modifies an existing Next.js + 
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T011 [P] Run full test suite `bun run test` (vitest unit + integration) and confirm no regressions from `revalidatePath` or action changes
-- [ ] T012 [P] Run Playwright E2E suite `bunx playwright test __tests__/e2e/us12-realtime-points.spec.ts` and confirm both US1 and US2 scenarios pass locally
+- [x] T011 [P] Run full test suite `bun run test` (vitest unit + integration) and confirm no regressions from `revalidatePath` or action changes
+- [x] T012 [P] Run Playwright E2E suite `bunx playwright test __tests__/e2e/us12-realtime-points.spec.ts` and confirm both US1 and US2 scenarios pass locally
 
 ---
 

@@ -45,7 +45,7 @@ export function EndDayButton({ dayRecordId, effortLevels, allChoresDone }: EndDa
         <AlertDialogHeader>
           <AlertDialogTitle>End the Day?</AlertDialogTitle>
           <AlertDialogDescription>
-            Incomplete chores will be penalized. This cannot be undone.
+            Incomplete chores will be penalized.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

@@ -274,6 +274,9 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'day_undone'
+            | 'penalty_reversed'
+            | 'effort_reversed'
           metadata: Json
           points_delta: number | null
           created_at: string
@@ -294,6 +297,9 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'day_undone'
+            | 'penalty_reversed'
+            | 'effort_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -314,6 +320,9 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'day_undone'
+            | 'penalty_reversed'
+            | 'effort_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
