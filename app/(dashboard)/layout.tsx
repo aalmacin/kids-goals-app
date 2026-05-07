@@ -12,10 +12,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const sessionStartedCookie = cookieStore.get('kg_session_started')
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) {
+    // If the session cookie exists the user was previously logged in — their session expired.
+    const loginUrl = sessionStartedCookie ? '/login?reason=session_expired' : '/login'
+    redirect(loginUrl)
+  }
 
   // Determine session role: check if user is a kid
   const { data: kid } = await supabase
@@ -52,8 +59,6 @@ export default async function DashboardLayout({
     familyName = family.name
   }
 
-  const cookieStore = await cookies()
-  const sessionStartedCookie = cookieStore.get('kg_session_started')
   const sessionStartedAt = sessionStartedCookie ? parseInt(sessionStartedCookie.value) : null
   const showExpiryWarning = sessionStartedAt !== null && isSessionExpiring(sessionStartedAt)
   const daysRemaining = sessionStartedAt !== null ? calculateDaysRemaining(sessionStartedAt) : null

@@ -5,11 +5,16 @@ import { Button } from '@/components/ui/button'
 import { loginParent } from '@/lib/actions/auth'
 import Link from 'next/link'
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; reason?: string }>
 }) {
+  const { error, reason } = await searchParams
+  const sessionExpiredMessage = reason === 'session_expired'
+    ? 'Your session has expired. Please sign in again.'
+    : null
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 p-4">
       <Card className="w-full max-w-md">
@@ -19,6 +24,16 @@ export default function LoginPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {sessionExpiredMessage && (
+            <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 border border-amber-200">
+              {sessionExpiredMessage}
+            </p>
+          )}
+          {error && !sessionExpiredMessage && (
+            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-200">
+              {error}
+            </p>
+          )}
           <form action={loginParent} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

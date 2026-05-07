@@ -14,10 +14,16 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const sessionStartedCookie = cookieStore.get('kg_session_started')
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) {
+    const loginUrl = sessionStartedCookie ? '/login?reason=session_expired' : '/login'
+    redirect(loginUrl)
+  }
 
   const pathname = (await headers()).get('x-pathname') ?? ''
 
@@ -27,8 +33,6 @@ export default async function AdminLayout({
   // New parent: redirect to family setup if no family yet (but don't loop)
   if (!family && pathname !== '/admin/family') redirect('/admin/family')
 
-  const cookieStore = await cookies()
-  const sessionStartedCookie = cookieStore.get('kg_session_started')
   const sessionStartedAt = sessionStartedCookie ? parseInt(sessionStartedCookie.value) : null
   const showExpiryWarning = sessionStartedAt !== null && isSessionExpiring(sessionStartedAt)
   const daysRemaining = sessionStartedAt !== null ? calculateDaysRemaining(sessionStartedAt) : null

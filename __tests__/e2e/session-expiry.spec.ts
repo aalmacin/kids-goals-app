@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test'
+import { createTestParent, deleteTestUser, loginAsParent } from './fixtures/auth'
 
 // Helpers
 const MS_PER_DAY = 1000 * 60 * 60 * 24
@@ -22,14 +23,13 @@ async function setSessionStartedCookie(context: BrowserContext, daysAgo: number)
 
 // US1: Session persistence
 test.describe('US1 — Session Persistence', () => {
-  test('login page redirects to dashboard when already authenticated', async ({ page }) => {
-    // Unauthenticated visit to login page renders the login form
+  test('login page renders for unauthenticated user', async ({ page }) => {
+    await page.context().clearCookies()
     await page.goto('/login')
     await expect(page.locator('input[name="email"]')).toBeVisible()
   })
 
   test('protected route redirects to login when unauthenticated', async ({ page }) => {
-    // Clear cookies to ensure unauthenticated state
     await page.context().clearCookies()
     await page.goto('/')
     await expect(page).toHaveURL(/login/)
@@ -39,6 +39,48 @@ test.describe('US1 — Session Persistence', () => {
     await page.context().clearCookies()
     await page.goto('/admin')
     await expect(page).toHaveURL(/login/)
+  })
+
+  // Authenticated happy-path: requires a running local Supabase instance
+  test('authenticated user lands on app (not login) after sign-in', async ({ page, request }) => {
+    let userId: string | undefined
+
+    try {
+      const { email, password, userId: id } = await createTestParent(request)
+      userId = id
+
+      await loginAsParent(page, email, password)
+
+      // After login the user should NOT be on the login page
+      await expect(page).not.toHaveURL(/\/login/)
+
+      // The kg_session_started cookie should be set
+      const cookies = await page.context().cookies()
+      const sessionCookie = cookies.find((c) => c.name === 'kg_session_started')
+      expect(sessionCookie).toBeDefined()
+      expect(Number(sessionCookie?.value)).toBeGreaterThan(0)
+    } finally {
+      if (userId) await deleteTestUser(request, userId)
+    }
+  })
+
+  test('session persists on page reload (cookies survive navigation)', async ({ page, request }) => {
+    let userId: string | undefined
+
+    try {
+      const { email, password, userId: id } = await createTestParent(request)
+      userId = id
+
+      await loginAsParent(page, email, password)
+      const urlAfterLogin = page.url()
+
+      // Reload the page — cookies should keep the user authenticated
+      await page.reload()
+      await expect(page).toHaveURL(urlAfterLogin)
+      await expect(page).not.toHaveURL(/\/login/)
+    } finally {
+      if (userId) await deleteTestUser(request, userId)
+    }
   })
 })
 
@@ -91,10 +133,23 @@ test.describe('US3 — Pre-Expiry Warning Banner', () => {
 // US4: Seamless re-authentication after expiry
 test.describe('US4 — Seamless Re-authentication After Expiry', () => {
   test('expired session redirects to login page', async ({ page, context }) => {
-    // Clear all cookies to simulate a fully expired/cleared session
     await context.clearCookies()
     await page.goto('/')
     await expect(page).toHaveURL(/login/)
+  })
+
+  test('login page shows session-expired message when redirected via ?reason=session_expired', async ({ page }) => {
+    await page.goto('/login?reason=session_expired')
+    await expect(page.getByText('Your session has expired. Please sign in again.')).toBeVisible()
+    // Login form still renders
+    await expect(page.locator('input[name="email"]')).toBeVisible()
+  })
+
+  test('login page shows no expired message without reason param', async ({ page, context }) => {
+    await context.clearCookies()
+    await page.goto('/login')
+    await expect(page.getByText('Your session has expired')).not.toBeVisible()
+    await expect(page.locator('input[name="email"]')).toBeVisible()
   })
 
   test('login page is accessible and functional after session expiry', async ({ page, context }) => {
