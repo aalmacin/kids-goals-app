@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { NavBar } from '@/components/navbar/NavBar'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
+import { SessionExpiryWarning } from '@/components/session/SessionExpiryWarning'
+import { isSessionExpiring, calculateDaysRemaining } from '@/lib/session'
 import type { SessionUser } from '@/lib/types'
 
 export default async function DashboardLayout({
@@ -9,10 +12,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const sessionStartedCookie = cookieStore.get('kg_session_started')
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) {
+    // If the session cookie exists the user was previously logged in — their session expired.
+    const loginUrl = sessionStartedCookie ? '/login?reason=session_expired' : '/login'
+    redirect(loginUrl)
+  }
 
   // Determine session role: check if user is a kid
   const { data: kid } = await supabase
@@ -49,8 +59,15 @@ export default async function DashboardLayout({
     familyName = family.name
   }
 
+  const sessionStartedAt = sessionStartedCookie ? parseInt(sessionStartedCookie.value) : null
+  const showExpiryWarning = sessionStartedAt !== null && isSessionExpiring(sessionStartedAt)
+  const daysRemaining = sessionStartedAt !== null ? calculateDaysRemaining(sessionStartedAt) : null
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+      {showExpiryWarning && daysRemaining !== null && (
+        <SessionExpiryWarning daysRemaining={daysRemaining} />
+      )}
       <NavBar session={session} kidPoints={kidPoints} familyName={familyName} />
       <main className="max-w-4xl mx-auto p-4 md:p-6">{children}</main>
       <InstallPrompt />

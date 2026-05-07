@@ -1,8 +1,27 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
 import { createFamily, getFamilyByName, getFamilyByParentId, updateFamilyTimezone } from '@/lib/db/families'
+
+const SESSION_COOKIE_NAME = 'kg_session_started'
+const SESSION_MAX_AGE = 31536000 // 365 days in seconds
+
+async function setSessionStartedCookie(): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.set(SESSION_COOKIE_NAME, Date.now().toString(), {
+    maxAge: SESSION_MAX_AGE,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  })
+}
+
+async function clearSessionStartedCookie(): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.delete(SESSION_COOKIE_NAME)
+}
 
 export async function loginParent(formData: FormData) {
   const email = formData.get('email') as string
@@ -12,12 +31,14 @@ export async function loginParent(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
 
+  await setSessionStartedCookie()
   redirect('/')
 }
 
 export async function logout() {
   const supabase = await createSupabaseServerClient()
   await supabase.auth.signOut()
+  await clearSessionStartedCookie()
   redirect('/login')
 }
 
@@ -67,6 +88,13 @@ export async function updateFamilyTimezoneAction(formData: FormData) {
   redirect('/admin/family?success=timezone')
 }
 
+export async function refreshSession(): Promise<void> {
+  const supabase = await createSupabaseServerClient()
+  await supabase.auth.refreshSession()
+  await clearSessionStartedCookie()
+  await setSessionStartedCookie()
+}
+
 export async function loginKid(formData: FormData) {
   const familyName = (formData.get('familyName') as string).trim()
   const kidName = (formData.get('kidName') as string).trim()
@@ -100,5 +128,6 @@ export async function loginKid(formData: FormData) {
   })
   if (authError) redirect(`/kid-login?error=${encodeURIComponent('Invalid passcode')}`)
 
+  await setSessionStartedCookie()
   redirect('/')
 }
