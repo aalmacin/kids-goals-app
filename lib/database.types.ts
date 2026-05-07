@@ -65,6 +65,7 @@ export type Database = {
           family_id: string
           name: string
           penalty: number
+          reward_points: number
           is_important: boolean
           icon: string
           deleted_at: string | null
@@ -76,6 +77,7 @@ export type Database = {
           family_id: string
           name: string
           penalty?: number
+          reward_points?: number
           is_important?: boolean
           icon: string
           deleted_at?: string | null
@@ -87,6 +89,7 @@ export type Database = {
           family_id?: string
           name?: string
           penalty?: number
+          reward_points?: number
           is_important?: boolean
           icon?: string
           deleted_at?: string | null
@@ -208,6 +211,7 @@ export type Database = {
           chore_name_snapshot: string
           penalty_snapshot: number
           is_important_snapshot: boolean
+          reward_snapshot: number
           completed_at: string | null
         }
         Insert: {
@@ -217,6 +221,7 @@ export type Database = {
           chore_name_snapshot: string
           penalty_snapshot: number
           is_important_snapshot: boolean
+          reward_snapshot?: number
           completed_at?: string | null
         }
         Update: {
@@ -226,6 +231,7 @@ export type Database = {
           chore_name_snapshot?: string
           penalty_snapshot?: number
           is_important_snapshot?: boolean
+          reward_snapshot?: number
           completed_at?: string | null
         }
         Relationships: NoRelationships
@@ -274,6 +280,7 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'chore_completion_reward'
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'
@@ -297,6 +304,7 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'chore_completion_reward'
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'
@@ -320,6 +328,7 @@ export type Database = {
             | 'chore_assigned'
             | 'chore_unassigned'
             | 'manual_adjustment'
+            | 'chore_completion_reward'
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'

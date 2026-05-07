@@ -12,6 +12,7 @@ export type Chore = {
   familyId: string
   name: string
   penalty: number
+  reward: number
   isImportant: boolean
   icon: string
   deletedAt: string | null
@@ -40,6 +41,7 @@ export type ChoreCompletion = {
   choreNameSnapshot: string
   penaltySnapshot: number
   isImportantSnapshot: boolean
+  rewardSnapshot: number
   completedAt: string | null
 }
 
@@ -85,6 +87,7 @@ export type ActivityLogEntry = {
     | 'chore_assigned'
     | 'chore_unassigned'
     | 'manual_adjustment'
+    | 'chore_completion_reward'
   metadata: Record<string, unknown>
   pointsDelta: number | null
   createdAt: string

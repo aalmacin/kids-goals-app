@@ -43,18 +43,20 @@ function parseAllowedDays(formData: FormData): number[] | undefined {
 export async function createChoreAction(formData: FormData) {
   const name = (formData.get('name') as string).trim()
   const penalty = Number(formData.get('penalty') ?? 0)
+  const reward = Number(formData.get('reward') ?? 0)
   const isImportant = formData.get('isImportant') === 'true'
   const icon = formData.get('icon') as string
   const allowedDays = parseAllowedDays(formData)
 
   const { family } = await requireParentFamily()
-  await createChore(family.id, name, penalty, isImportant, icon, allowedDays)
+  await createChore(family.id, name, penalty, reward, isImportant, icon, allowedDays)
   revalidatePath('/admin/chores')
 }
 
 export async function updateChoreAction(choreId: string, formData: FormData) {
   const name = (formData.get('name') as string).trim()
   const penalty = Number(formData.get('penalty') ?? 0)
+  const reward = Number(formData.get('reward') ?? 0)
   const isImportant = formData.get('isImportant') === 'true'
   const icon = formData.get('icon') as string
   const allowedDays = parseAllowedDays(formData)
@@ -63,6 +65,7 @@ export async function updateChoreAction(choreId: string, formData: FormData) {
   await updateChore(choreId, {
     name,
     penalty,
+    reward_points: reward,
     is_important: isImportant,
     icon,
     allowed_days: allowedDays !== undefined

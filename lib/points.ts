@@ -27,6 +27,19 @@ export function calculateEffortReward(effortLevel: EffortLevel | null): number {
 }
 
 /**
+ * Calculate total reward points for completed chores at End Day.
+ * Returns an array of { completion, reward } for completions with reward > 0,
+ * allowing the caller to insert one event per completed rewarded chore.
+ */
+export function calculateChoreRewards(
+  completions: ChoreCompletion[]
+): { completion: ChoreCompletion; reward: number }[] {
+  return completions
+    .filter((c) => c.completedAt !== null && c.rewardSnapshot > 0)
+    .map((c) => ({ completion: c, reward: c.rewardSnapshot }))
+}
+
+/**
  * Check whether a kid has enough points to pay for a rest day.
  */
 export function canAffordRestDay(points: number): boolean {

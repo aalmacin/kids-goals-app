@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
-import { calculatePenalties, calculateEffortReward } from '@/lib/points'
+import { calculatePenalties, calculateEffortReward, calculateChoreRewards } from '@/lib/points'
 import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
 import type { ChoreCompletion } from '@/lib/types'
 
@@ -164,6 +164,7 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     choreNameSnapshot: c.chore_name_snapshot,
     penaltySnapshot: c.penalty_snapshot,
     isImportantSnapshot: c.is_important_snapshot,
+    rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
   }))
 
@@ -178,6 +179,19 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
       action_type: 'penalty_applied' as const,
       metadata: { day_record_id: dayRecordId, total_penalty: totalPenalty },
       points_delta: -totalPenalty,
+    })
+  }
+
+  // Grant reward points for each completed chore with reward_snapshot > 0
+  const choreRewards = calculateChoreRewards(completions)
+  for (const { completion, reward } of choreRewards) {
+    await supabase.from('activity_log').insert({
+      family_id: kid!.family_id,
+      kid_id: kidId,
+      actor_type: 'kid' as const,
+      action_type: 'chore_completion_reward' as const,
+      metadata: { chore_name: completion.choreNameSnapshot, completion_id: completion.id },
+      points_delta: reward,
     })
   }
 

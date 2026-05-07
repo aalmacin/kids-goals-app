@@ -16,7 +16,7 @@
 
 **Purpose**: Apply schema changes that all user stories depend on.
 
-- [ ] T001 Create supabase/migrations/0007_chore_reward_points.sql — add `reward_points integer NOT NULL DEFAULT 0 CHECK (reward_points >= 0)` to `chores`, add `reward_snapshot integer NOT NULL DEFAULT 0 CHECK (reward_snapshot >= 0)` to `chore_completions`, drop and recreate `activity_log_action_type_check` constraint adding `chore_completion_reward`
+- [x] T001 Create supabase/migrations/0007_chore_reward_points.sql — add `reward_points integer NOT NULL DEFAULT 0 CHECK (reward_points >= 0)` to `chores`, add `reward_snapshot integer NOT NULL DEFAULT 0 CHECK (reward_snapshot >= 0)` to `chore_completions`, drop and recreate `activity_log_action_type_check` constraint adding `chore_completion_reward`
 
 ---
 
@@ -26,8 +26,8 @@
 
 **⚠️ CRITICAL**: No user story implementation can begin until this phase is complete.
 
-- [ ] T002 Update lib/database.types.ts — add `reward_points: number` to `chores` Row/Insert/Update types, add `reward_snapshot: number` to `chore_completions` Row/Insert/Update types, add `'chore_completion_reward'` to `activity_log` `action_type` column type
-- [ ] T003 Update lib/types.ts — add `reward: number` to `Chore` type, add `rewardSnapshot: number` to `ChoreCompletion` type, add `'chore_completion_reward'` to `ActivityLogEntry['actionType']` union
+- [x] T002 Update lib/database.types.ts — add `reward_points: number` to `chores` Row/Insert/Update types, add `reward_snapshot: number` to `chore_completions` Row/Insert/Update types, add `'chore_completion_reward'` to `activity_log` `action_type` column type
+- [x] T003 Update lib/types.ts — add `reward: number` to `Chore` type, add `rewardSnapshot: number` to `ChoreCompletion` type, add `'chore_completion_reward'` to `ActivityLogEntry['actionType']` union
 
 **Checkpoint**: Foundation ready — all three user stories can now begin in parallel.
 
@@ -39,10 +39,10 @@
 
 **Independent Test**: Create a chore with reward 10, save it, reload `/admin/chores` — reward value appears alongside penalty value. Edit the chore and change the reward to 20 — updated value persists.
 
-- [ ] T004 [US1] Update `createChore` and `updateChore` in lib/db/chores.ts to accept and persist a `reward` parameter mapped to the `reward_points` column
-- [ ] T005 [US1] Update `createChoreAction` and `updateChoreAction` in lib/actions/chores.ts to read `reward` from `formData` (same validation pattern as `penalty`: `Number(formData.get('reward') ?? 0)`) and pass to db functions
-- [ ] T006 [US1] Update app/(admin)/admin/chores/page.tsx — add "Reward Points" `<Input>` field (type number, min 0, defaultValue 0, name "reward") to the Add Chore form alongside the existing Penalty Points field; display `+{chore.reward_points} pts` reward badge next to the penalty badge in the chore list
-- [ ] T007 [P] [US1] Update __tests__/integration/chores.test.ts — add test cases: create chore with `reward_points: 5` and verify it is stored; update chore to change `reward_points` and verify new value; verify `reward_points` defaults to 0 when not provided
+- [x] T004 [US1] Update `createChore` and `updateChore` in lib/db/chores.ts to accept and persist a `reward` parameter mapped to the `reward_points` column
+- [x] T005 [US1] Update `createChoreAction` and `updateChoreAction` in lib/actions/chores.ts to read `reward` from `formData` (same validation pattern as `penalty`: `Number(formData.get('reward') ?? 0)`) and pass to db functions
+- [x] T006 [US1] Update app/(admin)/admin/chores/page.tsx — add "Reward Points" `<Input>` field (type number, min 0, defaultValue 0, name "reward") to the Add Chore form alongside the existing Penalty Points field; display `+{chore.reward_points} pts` reward badge next to the penalty badge in the chore list
+- [x] T007 [P] [US1] Update __tests__/integration/chores.test.ts — add test cases: create chore with `reward_points: 5` and verify it is stored; update chore to change `reward_points` and verify new value; verify `reward_points` defaults to 0 when not provided
 
 **Checkpoint**: Parent can fully configure reward points on a chore independently of all other stories.
 
@@ -54,12 +54,12 @@
 
 **Independent Test**: Assign a chore with reward 10 to a kid. Kid completes the chore. Trigger End Day. Kid's balance increases by 10. Activity log has one `chore_completion_reward` entry. Kid then starts a new day, checks the chore, unchecks it, and triggers End Day — balance does not increase.
 
-- [ ] T008 [P] [US2] Add `calculateChoreRewards(completions: ChoreCompletion[]): number` to lib/points.ts — sums `rewardSnapshot` for all completions where `completedAt !== null` and `rewardSnapshot > 0` (mirrors `calculatePenalties` pattern)
-- [ ] T009 [P] [US2] Update `getOrCreateDayRecord` in lib/db/day-records.ts — include `reward_points` in the chore fetch query and set `reward_snapshot: chore.reward_points` when inserting `chore_completions` rows (both the new-day path and the backfill path)
-- [ ] T010 [US2] Update `endDay` in lib/actions/day-records.ts — after inserting the `penalty_applied` event, iterate `completions` where `completedAt !== null && rewardSnapshot > 0` and insert one `activity_log` row per such completion with `action_type: 'chore_completion_reward'`, `points_delta: rewardSnapshot`, `metadata: { chore_name: choreNameSnapshot, completion_id: id }` (depends on T008, T009)
-- [ ] T011 [P] [US2] Update components/chore-list/ChoreItem.tsx — add a `+{completion.rewardSnapshot} pts` green badge (using `Badge` component) visible when `completion.rewardSnapshot > 0` regardless of completed state; place it alongside the existing penalty badge
-- [ ] T012 [P] [US2] Update __tests__/unit/points.test.ts — add `calculateChoreRewards` test suite: returns 0 for empty list, sums only completed completions with reward > 0, ignores uncompleted completions, ignores completions with rewardSnapshot of 0
-- [ ] T013 [US2] Update __tests__/integration/day-records.test.ts — add test cases: verify `reward_snapshot` is set when day record is created; verify `endDay` inserts `chore_completion_reward` events for completed chores with reward > 0; verify no reward event when chore is uncompleted; verify no reward event when `reward_snapshot` is 0 (depends on T009, T010)
+- [x] T008 [P] [US2] Add `calculateChoreRewards(completions: ChoreCompletion[]): number` to lib/points.ts — sums `rewardSnapshot` for all completions where `completedAt !== null` and `rewardSnapshot > 0` (mirrors `calculatePenalties` pattern)
+- [x] T009 [P] [US2] Update `getOrCreateDayRecord` in lib/db/day-records.ts — include `reward_points` in the chore fetch query and set `reward_snapshot: chore.reward_points` when inserting `chore_completions` rows (both the new-day path and the backfill path)
+- [x] T010 [US2] Update `endDay` in lib/actions/day-records.ts — after inserting the `penalty_applied` event, iterate `completions` where `completedAt !== null && rewardSnapshot > 0` and insert one `activity_log` row per such completion with `action_type: 'chore_completion_reward'`, `points_delta: rewardSnapshot`, `metadata: { chore_name: choreNameSnapshot, completion_id: id }` (depends on T008, T009)
+- [x] T011 [P] [US2] Update components/chore-list/ChoreItem.tsx — add a `+{completion.rewardSnapshot} pts` green badge (using `Badge` component) visible when `completion.rewardSnapshot > 0` regardless of completed state; place it alongside the existing penalty badge
+- [x] T012 [P] [US2] Update __tests__/unit/points.test.ts — add `calculateChoreRewards` test suite: returns 0 for empty list, sums only completed completions with reward > 0, ignores uncompleted completions, ignores completions with rewardSnapshot of 0
+- [x] T013 [US2] Update __tests__/integration/day-records.test.ts — add test cases: verify `reward_snapshot` is set when day record is created; verify `endDay` inserts `chore_completion_reward` events for completed chores with reward > 0; verify no reward event when chore is uncompleted; verify no reward event when `reward_snapshot` is 0 (depends on T009, T010)
 
 **Checkpoint**: End Day flow grants rewards correctly; tile displays reward badge; unit + integration tests pass.
 
@@ -71,7 +71,7 @@
 
 **Independent Test**: After End Day with rewarded completions, parent views `/activity` — reward entries appear with `+N` delta and a distinct label; not confused with penalty entries.
 
-- [ ] T014 [US3] Update components/activity-log/ActivityLogTable.tsx — add `chore_completion_reward: 'Chore Reward 🏆'` to `ACTION_LABELS`; in the `action` column cell renderer, also display `metadata?.chore_name` (string) below the badge when `actionType === 'chore_completion_reward'` (mirrors how `manual_adjustment` shows `reason`)
+- [x] T014 [US3] Update components/activity-log/ActivityLogTable.tsx — add `chore_completion_reward: 'Chore Reward 🏆'` to `ACTION_LABELS`; in the `action` column cell renderer, also display `metadata?.chore_name` (string) below the badge when `actionType === 'chore_completion_reward'` (mirrors how `manual_adjustment` shows `reason`)
 
 **Checkpoint**: All three user stories independently functional and visible end-to-end.
 
@@ -81,7 +81,7 @@
 
 **Purpose**: End-to-end test covering the full reward flow across all stories.
 
-- [ ] T015 Create __tests__/e2e/us11-chore-reward.spec.ts — E2E test covering: (1) parent configures reward on chore and it appears in library; (2) kid sees +N pts badge on chore tile before and after checking; (3) End Day is triggered and kid balance increases by reward amount; (4) activity log shows chore_completion_reward entry with chore name; (5) negative path: kid unchecks chore before End Day → no reward event
+- [x] T015 Create __tests__/e2e/us11-chore-reward.spec.ts — E2E test covering: (1) parent configures reward on chore and it appears in library; (2) kid sees +N pts badge on chore tile before and after checking; (3) End Day is triggered and kid balance increases by reward amount; (4) activity log shows chore_completion_reward entry with chore name; (5) negative path: kid unchecks chore before End Day → no reward event
 
 ---
 
