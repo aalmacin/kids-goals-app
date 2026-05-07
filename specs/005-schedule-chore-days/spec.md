@@ -77,6 +77,7 @@ A parent can see at a glance which days each chore is scheduled for when viewing
 - **FR-006**: When a chore is unavailable due to scheduling, the child-facing view MUST display the next day the chore becomes available.
 - **FR-007**: Parents MUST be able to see the current day schedule for each chore.
 - **FR-008**: The system MUST enforce schedule restrictions server-side, not only in the UI.
+- **FR-009**: The system MUST compute the current day-of-week using the family's stored IANA timezone (`families.timezone`), never UTC or server local time.
 
 ### Key Entities
 

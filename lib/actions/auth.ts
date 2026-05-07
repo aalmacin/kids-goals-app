@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase/server'
-import { createFamily, getFamilyByName, getFamilyByParentId } from '@/lib/db/families'
+import { createFamily, getFamilyByName, getFamilyByParentId, updateFamilyTimezone } from '@/lib/db/families'
 
 export async function loginParent(formData: FormData) {
   const email = formData.get('email') as string
@@ -46,6 +46,25 @@ export async function getParentFamily() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   return getFamilyByParentId(user.id)
+}
+
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'))
+
+export async function updateFamilyTimezoneAction(formData: FormData) {
+  const timezone = (formData.get('timezone') as string).trim()
+  if (!VALID_TIMEZONES.has(timezone)) {
+    redirect(`/admin/family?error=${encodeURIComponent('Invalid timezone')}`)
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const family = await getFamilyByParentId(user.id)
+  if (!family) redirect('/admin/family')
+
+  await updateFamilyTimezone(family.id, timezone)
+  redirect('/admin/family?success=timezone')
 }
 
 export async function loginKid(formData: FormData) {
