@@ -4,11 +4,19 @@
 **Created**: 2026-05-06
 **Status**: Draft
 
+## Clarifications
+
+### Session 2026-05-06
+
+- Q: Should reward points be configurable at the library level (inherited by all kids assigned the chore) or per kid assignment? → A: Library-level only — one reward value per chore definition, inherited by all kids assigned that chore.
+- Q: Should kids see the configured reward point value for each chore on their dashboard before completing it? → A: Yes — display the reward value on each chore tile so kids can see potential points before completing.
+- Q: Should there be a maximum cap on the reward point value a parent can configure per chore? → A: No cap — any non-negative integer is accepted, consistent with how penalty points work.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Configure Reward Points on a Chore (Priority: P1)
 
-A parent can set a reward point value on any chore in the family library. This value represents how many points a kid earns when they complete the chore before End Day. The field behaves identically to the existing penalty field — both are optional non-negative integers, and both are editable at any time.
+A parent can set a reward point value on any chore in the family library. This value represents how many points a kid earns when they complete the chore before End Day. The field behaves identically to the existing penalty field — both are optional non-negative integers, and both are editable at any time. The reward value is set once on the library chore and applies equally to all kids assigned that chore.
 
 **Why this priority**: Reward points are the core of this feature. Without the ability to configure them, nothing else can function.
 
@@ -21,12 +29,13 @@ A parent can set a reward point value on any chore in the family library. This v
 3. **Given** a chore with a reward value already set, **When** the parent edits it and changes the reward value, **Then** the new value is saved.
 4. **Given** a chore where the parent leaves the reward field empty, **When** the chore is saved, **Then** the chore is valid and reward points default to zero (no reward earned on completion).
 5. **Given** a parent entering a negative reward value, **When** they submit the form, **Then** an error is shown and the value is rejected.
+6. **Given** two kids assigned the same library chore with a reward of 10, **When** either kid completes the chore, **Then** both earn 10 points (the same library-level value).
 
 ---
 
 ### User Story 2 - Earn Reward Points on Chore Completion (Priority: P2)
 
-When a kid marks a chore as complete, they immediately earn the configured reward points. The points are added to their balance and recorded as an event in the audit log. If the kid unchecks the chore, the earned reward is reversed.
+When a kid marks a chore as complete, they immediately earn the configured reward points. The points are added to their balance and recorded as an event in the audit log. If the kid unchecks the chore, the earned reward is reversed. The kid's dashboard shows the potential reward value on each chore tile before completion, providing motivation to act.
 
 **Why this priority**: This is the payoff for kids completing chores — the primary motivation mechanic.
 
@@ -68,7 +77,7 @@ A parent reviewing the activity log can see chore completion reward events along
 
 ### Functional Requirements
 
-- **FR-001**: Each chore in the family library MUST support an optional, non-negative integer reward point value.
+- **FR-001**: Each chore in the family library MUST support an optional, non-negative integer reward point value. This value is defined once at the library level and applies equally to all kids assigned that chore.
 - **FR-002**: The reward field MUST behave consistently with the penalty field in the chore creation and edit forms (same validation, same optionality, same display).
 - **FR-003**: When a kid marks a chore as complete, the system MUST immediately add the configured reward points to the kid's balance (if reward > 0).
 - **FR-004**: The system MUST record each completion reward as an immutable point event in the audit log with event type `chore_completion_reward`, the chore reference, and the point delta.
@@ -77,10 +86,11 @@ A parent reviewing the activity log can see chore completion reward events along
 - **FR-007**: The activity log MUST display `chore_completion_reward` events with chore name, point amount, and timestamp, clearly distinguishable from penalty events.
 - **FR-008**: The reward point value for a chore MUST be independently configurable from the penalty value — changing one MUST NOT affect the other.
 - **FR-009**: A kid's displayed balance MUST reflect earned reward points immediately upon chore completion, consistent with the event-sourced balance model.
+- **FR-010**: Each chore tile on the kid's dashboard MUST display the configured reward point value (if > 0) before the chore is completed, so kids can see what they stand to earn.
 
 ### Key Entities
 
-- **Chore (updated)**: Now carries an optional `reward_points` integer (≥ 0) alongside the existing `penalty_points`. Defaults to zero if not set.
+- **Chore (updated)**: Now carries an optional `reward_points` integer (≥ 0) alongside the existing `penalty_points`. Defined at library level, inherited by all kid assignments. Defaults to zero if not set.
 - **Point Event (extended)**: A new event type `chore_completion_reward` is added to the existing event type enumeration. A corresponding reversal type handles unchecking.
 
 ## Success Criteria *(mandatory)*
@@ -100,3 +110,5 @@ A parent reviewing the activity log can see chore completion reward events along
 - The penalty for incomplete chores at End Day is unaffected by this feature; the two systems are additive and independent.
 - Existing chores without a reward value set are treated as having a reward of zero; no migration needed beyond a schema default.
 - The chore library edit UI will surface the reward field for all chores regardless of whether they currently have a reward configured.
+- Reward values are library-level only; per-kid assignment overrides are out of scope.
+- There is no maximum cap on reward point values; any non-negative integer is accepted, consistent with how penalty points work.
