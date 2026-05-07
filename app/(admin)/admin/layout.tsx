@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getFamilyByParentId } from '@/lib/db/families'
 import Link from 'next/link'
 import { logout } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { AdminMobileMenu } from '@/components/admin/AdminMobileMenu'
+import { SessionExpiryWarning } from '@/components/session/SessionExpiryWarning'
+import { isSessionExpiring, calculateDaysRemaining } from '@/lib/session'
 
 export default async function AdminLayout({
   children,
@@ -25,8 +27,17 @@ export default async function AdminLayout({
   // New parent: redirect to family setup if no family yet (but don't loop)
   if (!family && pathname !== '/admin/family') redirect('/admin/family')
 
+  const cookieStore = await cookies()
+  const sessionStartedCookie = cookieStore.get('kg_session_started')
+  const sessionStartedAt = sessionStartedCookie ? parseInt(sessionStartedCookie.value) : null
+  const showExpiryWarning = sessionStartedAt !== null && isSessionExpiring(sessionStartedAt)
+  const daysRemaining = sessionStartedAt !== null ? calculateDaysRemaining(sessionStartedAt) : null
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {showExpiryWarning && daysRemaining !== null && (
+        <SessionExpiryWarning daysRemaining={daysRemaining} />
+      )}
       <nav className="bg-indigo-700 text-white px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <span className="text-xl font-bold">{family ? `${family.name} — Admin` : 'Admin'}</span>

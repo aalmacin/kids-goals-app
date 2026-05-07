@@ -23,7 +23,7 @@ description: "Task list for Long PWA Session Duration"
 
 **Purpose**: Configure Supabase session lifetime — foundational to all user stories.
 
-- [ ] T001 Configure `supabase/config.toml` to set `[auth.sessions] timebox = 31536000` and `inactivity_timeout = 0` under `[auth]` set `jwt_expiry = 3600`
+- [x] T001 Configure `supabase/config.toml` to set `[auth.sessions] timebox = 31536000` and `inactivity_timeout = 0` under `[auth]` set `jwt_expiry = 3600`
 
 ---
 
@@ -33,7 +33,7 @@ description: "Task list for Long PWA Session Duration"
 
 **⚠️ CRITICAL**: US3 cannot begin until this phase is complete.
 
-- [ ] T002 Create `lib/session.ts` exporting `EXPIRY_DAYS = 365`, `WARNING_DAYS = 30`, `calculateDaysRemaining(sessionStartedAt: number): number` (returns days until expiry, negative if past), and `isSessionExpiring(sessionStartedAt: number): boolean` (returns true when daysRemaining <= WARNING_DAYS)
+- [x] T002 Create `lib/session.ts` exporting `EXPIRY_DAYS = 365`, `WARNING_DAYS = 30`, `calculateDaysRemaining(sessionStartedAt: number): number` (returns days until expiry, negative if past), and `isSessionExpiring(sessionStartedAt: number): boolean` (returns true when daysRemaining <= WARNING_DAYS)
 
 **Checkpoint**: Foundation ready — user story implementation can begin.
 
@@ -47,13 +47,13 @@ description: "Task list for Long PWA Session Duration"
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Modify `lib/actions/auth.ts` to set `kg_session_started` cookie in `loginParent` and `loginKid` actions — value: `Date.now().toString()`, maxAge: 31536000, httpOnly: true, sameSite: 'lax', secure: true in production
-- [ ] T004 [US1] Modify `lib/actions/auth.ts` to delete `kg_session_started` cookie in the `logout` action via `cookies().delete('kg_session_started')`
+- [x] T003 [US1] Modify `lib/actions/auth.ts` to set `kg_session_started` cookie in `loginParent` and `loginKid` actions — value: `Date.now().toString()`, maxAge: 31536000, httpOnly: true, sameSite: 'lax', secure: true in production
+- [x] T004 [US1] Modify `lib/actions/auth.ts` to delete `kg_session_started` cookie in the `logout` action via `cookies().delete('kg_session_started')`
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Create `__tests__/integration/session.test.ts` testing that `kg_session_started` is set on successful login and cleared on logout
-- [ ] T006 [P] [US1] Create `__tests__/e2e/session-expiry.spec.ts` with E2E scenarios: user stays logged in after reopening the app, and session persists across simulated days of inactivity
+- [x] T005 [P] [US1] Create `__tests__/integration/session.test.ts` testing that `kg_session_started` is set on successful login and cleared on logout
+- [x] T006 [P] [US1] Create `__tests__/e2e/session-expiry.spec.ts` with E2E scenarios: user stays logged in after reopening the app, and session persists across simulated days of inactivity
 
 **Checkpoint**: Login cookie lifecycle is fully functional and independently verifiable.
 
@@ -67,8 +67,8 @@ description: "Task list for Long PWA Session Duration"
 
 ### Tests for User Story 2
 
-- [ ] T007 [P] [US2] Create `__tests__/unit/session.test.ts` with unit tests for `calculateDaysRemaining` (zero days remaining, negative days, mid-range values) and `isSessionExpiring` (boundary at exactly 30 days, above and below threshold)
-- [ ] T008 [P] [US2] Add E2E test to `__tests__/e2e/session-expiry.spec.ts` for session expiry: simulate a 1-year-old session (override cookie value) and verify user is signed out and shown the login screen
+- [x] T007 [P] [US2] Create `__tests__/unit/session.test.ts` with unit tests for `calculateDaysRemaining` (zero days remaining, negative days, mid-range values) and `isSessionExpiring` (boundary at exactly 30 days, above and below threshold)
+- [x] T008 [P] [US2] Add E2E test to `__tests__/e2e/session-expiry.spec.ts` for session expiry: simulate a 1-year-old session (override cookie value) and verify user is signed out and shown the login screen
 
 **Checkpoint**: Session expiry behaviour is verified end-to-end.
 
@@ -82,14 +82,14 @@ description: "Task list for Long PWA Session Duration"
 
 ### Implementation for User Story 3
 
-- [ ] T009 [P] [US3] Create `components/session/SessionExpiryWarning.tsx` as a client component — renders shadcn `Alert` (destructive variant) showing days remaining, a dismiss button (local state, reappears on next navigation), and a "Stay logged in" button that calls the `refreshSession` server action
-- [ ] T010 [US3] Add `refreshSession` server action to `lib/actions/auth.ts` — calls `supabase.auth.refreshSession()`, deletes `kg_session_started`, then re-sets it to `Date.now().toString()` with the same cookie attributes as login
-- [ ] T011 [US3] Modify `app/(dashboard)/layout.tsx` to read `cookies().get('kg_session_started')`, call `isSessionExpiring` from `lib/session.ts`, and render `<SessionExpiryWarning daysRemaining={calculateDaysRemaining(value)} />` above the main content when expiring
-- [ ] T012 [P] [US3] Modify `app/(admin)/admin/layout.tsx` to apply the same session expiry check and `SessionExpiryWarning` rendering as T011
+- [x] T009 [P] [US3] Create `components/session/SessionExpiryWarning.tsx` as a client component — renders shadcn `Alert` (destructive variant) showing days remaining, a dismiss button (local state, reappears on next navigation), and a "Stay logged in" button that calls the `refreshSession` server action
+- [x] T010 [US3] Add `refreshSession` server action to `lib/actions/auth.ts` — calls `supabase.auth.refreshSession()`, deletes `kg_session_started`, then re-sets it to `Date.now().toString()` with the same cookie attributes as login
+- [x] T011 [US3] Modify `app/(dashboard)/layout.tsx` to read `cookies().get('kg_session_started')`, call `isSessionExpiring` from `lib/session.ts`, and render `<SessionExpiryWarning daysRemaining={calculateDaysRemaining(value)} />` above the main content when expiring
+- [x] T012 [P] [US3] Modify `app/(admin)/admin/layout.tsx` to apply the same session expiry check and `SessionExpiryWarning` rendering as T011
 
 ### Tests for User Story 3
 
-- [ ] T013 [P] [US3] Add E2E tests to `__tests__/e2e/session-expiry.spec.ts` for: warning banner appears when session is within 30 days of expiry, banner is dismissable per page, and "Stay logged in" resets the session and removes the banner
+- [x] T013 [P] [US3] Add E2E tests to `__tests__/e2e/session-expiry.spec.ts` for: warning banner appears when session is within 30 days of expiry, banner is dismissable per page, and "Stay logged in" resets the session and removes the banner
 
 **Checkpoint**: Pre-expiry warning is fully functional in both dashboard and admin layouts.
 
@@ -103,7 +103,7 @@ description: "Task list for Long PWA Session Duration"
 
 ### Tests for User Story 4
 
-- [ ] T014 [P] [US4] Add E2E test to `__tests__/e2e/session-expiry.spec.ts` for expired session flow: simulate expired session, verify user sees the login page with a clear session-expired message, and after login is redirected back into the app
+- [x] T014 [P] [US4] Add E2E test to `__tests__/e2e/session-expiry.spec.ts` for expired session flow: simulate expired session, verify user sees the login page with a clear session-expired message, and after login is redirected back into the app
 
 **Checkpoint**: All four user stories are independently functional and verified.
 
@@ -113,7 +113,7 @@ description: "Task list for Long PWA Session Duration"
 
 **Purpose**: Final validation pass across all stories.
 
-- [ ] T015 Verify TypeScript strict mode compliance across all new and modified files: `lib/session.ts`, `lib/actions/auth.ts`, `components/session/SessionExpiryWarning.tsx`, both layout files
+- [x] T015 Verify TypeScript strict mode compliance across all new and modified files: `lib/session.ts`, `lib/actions/auth.ts`, `components/session/SessionExpiryWarning.tsx`, both layout files
 
 ---
 
