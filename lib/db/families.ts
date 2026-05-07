@@ -45,3 +45,15 @@ export async function updateFamilyName(familyId: string, name: string) {
   if (error) throw error
   return data
 }
+
+export async function updateFamilyTimezone(familyId: string, timezone: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('families')
+    .update({ timezone })
+    .eq('id', familyId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
