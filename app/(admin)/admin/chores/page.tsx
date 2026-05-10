@@ -5,6 +5,7 @@ import { getKidsByFamily } from '@/lib/db/kids'
 import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreAction, updateChoreAction } from '@/lib/actions/chores'
 import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
 import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
+import { Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -117,6 +118,40 @@ export default async function ChoresPage() {
                 choreId={chore.id}
                 initialDays={chore.allowed_days ?? []}
               />
+
+              {/* Edit Chore */}
+              <details className="mt-3">
+                <summary className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-indigo-600 w-fit">
+                  <Pencil className="w-3 h-3" /> Edit
+                </summary>
+                <form action={updateChoreAction.bind(null, chore.id)} className="mt-3 space-y-3 border-t pt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor={`edit-name-${chore.id}`} className="text-xs">Chore Name</Label>
+                      <Input id={`edit-name-${chore.id}`} name="name" defaultValue={chore.name} required className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`edit-penalty-${chore.id}`} className="text-xs">Penalty Points</Label>
+                      <Input id={`edit-penalty-${chore.id}`} name="penalty" type="number" min={0} defaultValue={chore.penalty} className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`edit-reward-${chore.id}`} className="text-xs">Reward Points</Label>
+                      <Input id={`edit-reward-${chore.id}`} name="reward" type="number" min={0} defaultValue={chore.reward_points} className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id={`edit-important-${chore.id}`} name="isImportant" value="true" defaultChecked={chore.is_important} className="w-4 h-4" />
+                      <Label htmlFor={`edit-important-${chore.id}`} className="text-xs">Important</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Icon</Label>
+                      <IconPicker name="icon" defaultValue={chore.icon} />
+                    </div>
+                    <Button type="submit" size="sm" className="h-7 text-xs">Save</Button>
+                  </div>
+                </form>
+              </details>
 
               {/* Kid Assignments */}
               {kids.length > 0 && (
