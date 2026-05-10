@@ -130,3 +130,7 @@ Remove "This cannot be undone." from the description since undo is now available
 
 Replace the "Day Ended ✓" static badge with `UndoEndDayButton` when `isEnded`.
 The static ended indicator can move inside `UndoEndDayButton` or remain alongside it.
+
+### "Calendar day view" definition (FR-008)
+
+The `/calendar` page renders `CalendarView`, which has no inline detail panel. Selecting a date calls `router.push('/?date=<iso>')`. This navigates to the dashboard page (`app/(dashboard)/page.tsx`) with a date query param — the same page that renders `UndoEndDayButton`. FR-008 ("accessible from both the main dashboard and the calendar day view") is therefore satisfied by a single button placement: the dashboard page at `/?date=<date>` serves as the "calendar day view".
