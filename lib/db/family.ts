@@ -76,7 +76,7 @@ export async function getTodayDailyProgress(
     }
   }
 
-  let completionsByDayRecord = new Map<string, { total: number; completed: number }>()
+  const completionsByDayRecord = new Map<string, { total: number; completed: number }>()
 
   if (dayRecordIds.length > 0) {
     const { data: completions, error: compError } = await supabase
