@@ -84,7 +84,7 @@ export async function toggleChore(completionId: string, completed: boolean, dayR
     points_delta: null,
   })
 
-  revalidatePath('/dashboard')
+  revalidatePath('/')
   return completion
 }
 
@@ -127,7 +127,7 @@ export async function declareRestDay(dayRecordId: string) {
     points_delta: -100,
   })
 
-  revalidatePath('/dashboard')
+  revalidatePath('/')
   return { success: true }
 }
 
@@ -224,6 +224,77 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     points_delta: null,
   })
 
-  revalidatePath('/dashboard')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function undoEndDay(dayRecordId: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: kid } = await supabase
+    .from('kids')
+    .select('id, family_id')
+    .eq('supabase_user_id', user.id)
+    .maybeSingle()
+
+  if (!kid) throw new Error('Kid not found')
+
+  const { data: dayRecord } = await supabase
+    .from('day_records')
+    .select('ended_at, kid_id')
+    .eq('id', dayRecordId)
+    .single()
+
+  if (!dayRecord?.ended_at) return { error: 'Day has not been ended' }
+  if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
+
+  // Fetch activity_log entries for this day that affected points
+  const { data: logEntries } = await supabase
+    .from('activity_log')
+    .select('action_type, points_delta')
+    .eq('kid_id', kid.id)
+    .in('action_type', ['penalty_applied', 'effort_awarded'])
+    .not('points_delta', 'is', null)
+    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+
+  for (const entry of logEntries ?? []) {
+    if (entry.action_type === 'penalty_applied') {
+      await supabase.from('activity_log').insert({
+        family_id: kid.family_id,
+        kid_id: kid.id,
+        actor_type: 'kid' as const,
+        action_type: 'penalty_reversed' as const,
+        metadata: { day_record_id: dayRecordId },
+        points_delta: -(entry.points_delta!),
+      })
+    } else if (entry.action_type === 'effort_awarded') {
+      await supabase.from('activity_log').insert({
+        family_id: kid.family_id,
+        kid_id: kid.id,
+        actor_type: 'kid' as const,
+        action_type: 'effort_reversed' as const,
+        metadata: { day_record_id: dayRecordId },
+        points_delta: -(entry.points_delta!),
+      })
+    }
+  }
+
+  await supabase.from('activity_log').insert({
+    family_id: kid.family_id,
+    kid_id: kid.id,
+    actor_type: 'kid' as const,
+    action_type: 'day_undone' as const,
+    metadata: { day_record_id: dayRecordId },
+    points_delta: null,
+  })
+
+  await supabase
+    .from('day_records')
+    .update({ ended_at: null, effort_level_id: null })
+    .eq('id', dayRecordId)
+
+  revalidatePath('/')
   return { success: true }
 }
