@@ -31,13 +31,14 @@
 
 ### activity_log (updated constraint only)
 
-One new `action_type` value added to the CHECK constraint:
+Two new `action_type` values added to the CHECK constraint:
 
 | action_type | actor | points_delta | When inserted | Description |
 |-------------|-------|-------------|---------------|-------------|
 | `chore_completion_reward` | kid | +N (reward_snapshot) | End Day | Kid earned reward for completing a chore |
+| `chore_completion_reward_reversed` | kid | -N (original reward_snapshot) | Undo End Day | Reversal of a previously granted chore reward |
 
-No `chore_completion_reward_reversed` event — unchecking before End Day means no reward was ever granted, so no reversal is needed.
+Note: `chore_completion_reward_reversed` is only inserted when End Day is undone — one per original `chore_completion_reward` event from that run. It is NOT inserted when a kid unchecks a chore before End Day (the reward was never credited in that case).
 
 All other event types unchanged.
 
@@ -142,6 +143,23 @@ getOrCreateDayRecord → new day:
       is_important_snapshot = chore.is_important
   - reward_snapshot is frozen; subsequent edits to library chore do not affect it
 ```
+
+### Undo End Day Flow (updated)
+
+```
+undoEndDay(dayRecordId):
+  1. Verify day is currently ended
+  2. Query activity_log for actual events recorded for this day_record_id:
+       - Filter by action_type IN ('penalty_applied', 'effort_awarded', 'chore_completion_reward')
+  3. ONLY reverse events that are present in the query result (FR-013):
+       - IF 'penalty_applied' event exists: INSERT activity_log (penalty_applied_reversed or equivalent, +|points_delta|)
+       - IF 'effort_awarded' event exists: INSERT activity_log reversal with -effortPoints
+       - FOR EACH 'chore_completion_reward' event: INSERT activity_log (chore_completion_reward_reversed, -originalRow.points_delta, metadata)
+  4. Mark day un-ended: UPDATE day_records SET ended_at = null
+  5. DELETE activity_log (day_ended) row for this day_record_id
+```
+
+**Critical constraint**: Do NOT synthesise reversal events for event types that were never recorded for this day_record_id. Inserting phantom reversals (e.g., reversing a penalty that was never applied because all chores were completed) causes incorrect point gains on every undo.
 
 ### Toggle Flow (unchanged from today)
 

@@ -41,6 +41,13 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 1. **Kid**: Check a chore with reward, then uncheck it before End Day
 2. **Parent**: Trigger End Day → balance does NOT increase for that chore; no reward event in log
 
+### Undo End Day verification (bug fix — FR-013)
+
+1. **Kid**: Check ALL chores (no penalty should be applied)
+2. **Parent**: Trigger End Day → balance increases by effort level only (e.g. +15)
+3. **Parent**: Undo End Day → balance returns to exactly the pre-End-Day value (net change: −15)
+4. **Repeat step 2–3** several times → balance must not drift upward (confirms no phantom reversal events are being created)
+
 ## Key Files Changed
 
 | File | Change |
