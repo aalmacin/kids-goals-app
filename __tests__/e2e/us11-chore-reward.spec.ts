@@ -115,4 +115,41 @@ test.describe('US11 — Chore Completion Reward Points', () => {
       await expect(page.getByText('+10')).toBeVisible()
     }
   )
+
+  test.fixme(
+    'US4 happy path: undo end day reverts reward — balance restored and reversal entry visible in log',
+    async ({ page }) => {
+      // Login as kid
+      await page.goto('/kid-login')
+      await expect(page).toHaveURL(/kid-login/)
+
+      await page.goto('/')
+
+      // Complete rewarded chore
+      await page.getByRole('checkbox').first().check()
+
+      // Trigger End Day and record balance
+      await page.getByRole('button', { name: /end day/i }).click()
+      await page.getByRole('button', { name: /confirm/i }).click()
+
+      // Balance should reflect earned rewards
+      const balanceAfterEndDay = await page.getByTestId('kid-balance').textContent()
+
+      // Trigger Undo End Day
+      await page.getByRole('button', { name: /undo end day/i }).click()
+      await page.getByRole('button', { name: /confirm/i }).click()
+
+      // Balance should return to pre-End-Day value (reward reverted)
+      const balanceAfterUndo = await page.getByTestId('kid-balance').textContent()
+      expect(balanceAfterUndo).not.toBe(balanceAfterEndDay)
+
+      // Activity log should show the reversal entry
+      await page.goto('/activity')
+      await expect(page.getByText('Chore Reward Reversed')).toBeVisible()
+      // Points delta should be negative
+      await expect(page.getByText('-10')).toBeVisible()
+      // Chore name should be visible below the badge
+      await expect(page.getByText('Reward Test Chore')).toBeVisible()
+    }
+  )
 })

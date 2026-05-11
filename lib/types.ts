@@ -88,6 +88,7 @@ export type ActivityLogEntry = {
     | 'chore_unassigned'
     | 'manual_adjustment'
     | 'chore_completion_reward'
+    | 'chore_completion_reward_reversed'
   metadata: Record<string, unknown>
   pointsDelta: number | null
   createdAt: string

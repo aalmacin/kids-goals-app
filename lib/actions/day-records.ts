@@ -295,6 +295,35 @@ export async function undoEndDay(dayRecordId: string) {
     }
   }
 
+  // Reverse chore_completion_reward events for this day
+  const { data: dayCompletions } = await supabase
+    .from('chore_completions')
+    .select('id')
+    .eq('day_record_id', dayRecordId)
+
+  const completionIdSet = new Set((dayCompletions ?? []).map((c) => c.id))
+
+  const { data: rewardEntries } = await supabase
+    .from('activity_log')
+    .select('id, points_delta, metadata')
+    .eq('kid_id', kid.id)
+    .eq('action_type', 'chore_completion_reward')
+    .not('points_delta', 'is', null)
+
+  for (const entry of rewardEntries ?? []) {
+    const meta = entry.metadata as Record<string, unknown>
+    if (typeof meta.completion_id === 'string' && completionIdSet.has(meta.completion_id)) {
+      await supabase.from('activity_log').insert({
+        family_id: kid.family_id,
+        kid_id: kid.id,
+        actor_type: 'kid' as const,
+        action_type: 'chore_completion_reward_reversed' as const,
+        metadata: { chore_name: meta.chore_name, original_event_id: entry.id },
+        points_delta: -(entry.points_delta!),
+      })
+    }
+  }
+
   await supabase.from('activity_log').insert({
     family_id: kid.family_id,
     kid_id: kid.id,

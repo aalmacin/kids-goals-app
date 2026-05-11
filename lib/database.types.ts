@@ -284,6 +284,7 @@ export type Database = {
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'
+            | 'chore_completion_reward_reversed'
           metadata: Json
           points_delta: number | null
           created_at: string
@@ -308,6 +309,7 @@ export type Database = {
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'
+            | 'chore_completion_reward_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -332,6 +334,7 @@ export type Database = {
             | 'day_undone'
             | 'penalty_reversed'
             | 'effort_reversed'
+            | 'chore_completion_reward_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string

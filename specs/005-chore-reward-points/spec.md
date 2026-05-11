@@ -18,6 +18,12 @@
 - Q: At End Day, should multiple completed rewarded chores generate one event per chore or one aggregate event? → A: One `chore_completion_reward` event per completed chore with reward > 0 (per-chore detail).
 - Q: Should the reward badge (+N pts) be visible only on uncompleted chores or on both completed and uncompleted tiles? → A: Show on both completed and uncompleted tiles — confirms the reward is queued when shown on a completed tile.
 
+### Session 2026-05-10
+
+- Q: Does "undo end day" exist and should reward reversal be added to this branch? → A: Yes — undo End Day exists; reward reversal is in scope for this branch.
+- Q: How should reward reversal be recorded when End Day is undone? → A: Insert one offsetting negative event per reversed reward (`chore_completion_reward_reversed`), preserving the immutable audit log.
+- Q: Should `chore_completion_reward_reversed` events appear in the parent-facing activity log? → A: Yes — show as distinct labeled entries (e.g., "Chore Reward Reversed") alongside other events.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Configure Reward Points on a Chore (Priority: P1)
@@ -78,6 +84,7 @@ A parent reviewing the activity log can see chore completion reward events along
 - What if a kid has already earned a reward for a chore and the chore is deleted from the library? Historical events retain the chore name and reward data (soft delete behavior, consistent with existing chore deletion rules).
 - What happens when End Day is triggered and a chore is still marked complete? The penalty is not applied (chore is complete), and the reward is granted at that moment — no additional action needed.
 - What if a kid unchecks a chore before End Day? The chore is incomplete at End Day, so no reward is granted and no penalty-reversal is needed (reward was never credited to the balance).
+- What happens if End Day is undone after rewards are granted? One `chore_completion_reward_reversed` event is inserted per original `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original snapshot. The kid's balance is restored via the existing `activity_log` trigger. Reversal events appear in the activity log as distinct "Chore Reward Reversed" entries.
 
 ## Requirements *(mandatory)*
 
@@ -93,11 +100,13 @@ A parent reviewing the activity log can see chore completion reward events along
 - **FR-008**: The reward point value for a chore MUST be independently configurable from the penalty value — changing one MUST NOT affect the other.
 - **FR-009**: A kid's displayed balance MUST reflect earned reward points immediately upon End Day completion, consistent with the event-sourced balance model.
 - **FR-010**: Each chore tile on the kid's dashboard MUST display the configured reward point value (if > 0) on both completed and uncompleted tiles, so kids can see what they stand to earn (uncompleted) and confirm what is queued for End Day (completed).
+- **FR-011**: When End Day is undone, the system MUST insert one `chore_completion_reward_reversed` event per `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original reward snapshot, restoring the kid's balance via the existing trigger.
+- **FR-012**: The activity log MUST display `chore_completion_reward_reversed` events with a distinct label (e.g., "Chore Reward Reversed"), the negative point delta, and timestamp, clearly distinguishable from reward grant events.
 
 ### Key Entities
 
 - **Chore (updated)**: Now carries an optional `reward_points` integer (≥ 0) alongside the existing `penalty_points`. Defined at library level, inherited by all kid assignments. Defaults to zero if not set.
-- **Point Event (extended)**: A new event type `chore_completion_reward` is added to the existing event type enumeration. Generated at End Day (not on toggle) for each completed chore with reward > 0.
+- **Point Event (extended)**: Two new event types are added to the existing enumeration: `chore_completion_reward` (generated at End Day for each completed chore with reward > 0) and `chore_completion_reward_reversed` (generated when End Day is undone, one per original reward event, with negative delta).
 
 ## Success Criteria *(mandatory)*
 

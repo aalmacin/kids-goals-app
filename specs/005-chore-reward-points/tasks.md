@@ -8,7 +8,7 @@
 ## Format: `[ID] [P?] [Story?] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies on incomplete tasks)
-- **[Story]**: User story this task belongs to (US1, US2, US3)
+- **[Story]**: User story this task belongs to (US1, US2, US3, US4)
 
 ---
 
@@ -16,7 +16,7 @@
 
 **Purpose**: Apply schema changes that all user stories depend on.
 
-- [x] T001 Create supabase/migrations/0007_chore_reward_points.sql — add `reward_points integer NOT NULL DEFAULT 0 CHECK (reward_points >= 0)` to `chores`, add `reward_snapshot integer NOT NULL DEFAULT 0 CHECK (reward_snapshot >= 0)` to `chore_completions`, drop and recreate `activity_log_action_type_check` constraint adding `chore_completion_reward`
+- [x] T001 Create supabase/migrations/0011_chore_reward_points.sql — add `reward_points integer NOT NULL DEFAULT 0 CHECK (reward_points >= 0)` to `chores`, add `reward_snapshot integer NOT NULL DEFAULT 0 CHECK (reward_snapshot >= 0)` to `chore_completions`, drop and recreate `activity_log_action_type_check` constraint adding `chore_completion_reward`
 
 ---
 
@@ -71,7 +71,7 @@
 
 **Independent Test**: After End Day with rewarded completions, parent views `/activity` — reward entries appear with `+N` delta and a distinct label; not confused with penalty entries.
 
-- [x] T014 [US3] Update components/activity-log/ActivityLogTable.tsx — add `chore_completion_reward: 'Chore Reward 🏆'` to `ACTION_LABELS`; in the `action` column cell renderer, also display `metadata?.chore_name` (string) below the badge when `actionType === 'chore_completion_reward'` (mirrors how `manual_adjustment` shows `reason`)
+- [x] T014 [US3] Update components/activity-log/ActivityLogTable.tsx — add `chore_completion_reward: 'Chore Reward'` to `ACTION_LABELS`; in the `action` column cell renderer, also display `metadata?.chore_name` (string) below the badge when `actionType === 'chore_completion_reward'` (mirrors how `manual_adjustment` shows `reason`)
 
 **Checkpoint**: All three user stories independently functional and visible end-to-end.
 
@@ -85,28 +85,49 @@
 
 ---
 
+## Phase 7: User Story 4 — Undo End Day Reverts Reward Points (FR-011, FR-012)
+
+**Goal**: When End Day is undone, one `chore_completion_reward_reversed` event is inserted per original reward event, restoring the kid's balance. Reversal events appear in the activity log with a distinct label.
+
+**Independent Test**: Trigger End Day with a rewarded completed chore — kid's balance increases. Trigger undo End Day — kid's balance returns to pre-End-Day value. Activity log shows a "Chore Reward Reversed" entry with the original chore name and negative point delta.
+
+- [x] T016 Create supabase/migrations/0012_reward_reversal_event_type.sql — drop and recreate `activity_log_action_type_check` constraint to add `'chore_completion_reward_reversed'` alongside all existing action types including `'chore_completion_reward'`
+- [x] T017 [P] Update lib/database.types.ts — add `'chore_completion_reward_reversed'` to the `activity_log` `action_type` column type union (depends on T016)
+- [x] T018 [P] Update lib/types.ts — add `'chore_completion_reward_reversed'` to `ActivityLogEntry['actionType']` union (depends on T016)
+- [x] T019 [US4] Update `undoEndDay` in lib/actions/day-records.ts — after reversing the penalty event, query `activity_log` for all `chore_completion_reward` rows where `day_record_id` matches; for each, insert one `activity_log` row with `action_type: 'chore_completion_reward_reversed'`, `points_delta: -originalRow.points_delta`, `metadata: { chore_name: originalRow.metadata.chore_name, original_event_id: originalRow.id }` (depends on T017, T018)
+- [x] T020 [P] [US4] Update components/activity-log/ActivityLogTable.tsx — add `chore_completion_reward_reversed: 'Chore Reward Reversed'` to `ACTION_LABELS`; display `metadata?.chore_name` below the badge when `actionType === 'chore_completion_reward_reversed'` (same pattern as `chore_completion_reward`)
+- [x] T021 [US4] Update __tests__/integration/day-records.test.ts — add test cases: verify `undoEndDay` inserts one `chore_completion_reward_reversed` event per prior `chore_completion_reward` event; verify kid balance is restored to pre-End-Day value; verify no reversal events inserted when no reward events existed for that day (depends on T019)
+- [x] T022 [US4] Update __tests__/e2e/us11-chore-reward.spec.ts — add E2E path: (1) End Day is triggered with rewarded completion → balance increases; (2) undo End Day is triggered → balance returns to original value; (3) activity log shows "Chore Reward Reversed" entry with chore name and negative delta (depends on T019, T020)
+
+**Checkpoint**: Undo End Day fully reverts reward points; activity log shows reversal events; integration + E2E tests pass.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
 
 - **Phase 1 (Setup)**: No dependencies — start immediately
 - **Phase 2 (Foundational)**: Depends on T001 — blocks all user stories
-- **Phase 3 (US1)**: Depends on Phase 2 completion — no dependency on US2/US3
-- **Phase 4 (US2)**: Depends on Phase 2 completion — no dependency on US1/US3
-- **Phase 5 (US3)**: Depends on Phase 2 completion — no dependency on US1/US2
+- **Phase 3 (US1)**: Depends on Phase 2 completion — no dependency on US2/US3/US4
+- **Phase 4 (US2)**: Depends on Phase 2 completion — no dependency on US1/US3/US4
+- **Phase 5 (US3)**: Depends on Phase 2 completion — no dependency on US1/US2/US4
 - **Phase 6 (Polish)**: Depends on US1, US2, US3 complete
+- **Phase 7 (US4)**: Depends on Phase 2 completion and Phase 4 (US2) complete — reversal requires reward granting to already work
 
 ### User Story Dependencies
 
 - **US1 (P1)**: Independent after Phase 2
 - **US2 (P2)**: Independent after Phase 2 (does not require US1 to be complete)
 - **US3 (P3)**: Independent after Phase 2 (does not require US1 or US2 to be complete)
+- **US4**: Depends on US2 complete (reversal is the inverse of US2's End Day reward granting)
 
 ### Within Each User Story
 
 - US1: T004 → T005 → T006; T007 [P] can be written anytime after T004
 - US2: T008 and T009 and T011 [P] in parallel; T010 depends on T008 + T009; T012 [P] after T008; T013 after T009 + T010
 - US3: T014 single task
+- US4: T016 → T017 + T018 [P] → T019 → T020 [P] + T021 → T022
 
 ### Parallel Opportunities
 
@@ -115,6 +136,9 @@
 Task: US1 (T004 → T005 → T006 + T007)
 Task: US2 (T008 + T009 + T011 in parallel → T010 → T012 + T013)
 Task: US3 (T014)
+
+# After US2 completes:
+Task: US4 (T016 → T017 + T018 → T019 → T020 + T021 → T022)
 ```
 
 ---
@@ -136,6 +160,7 @@ Task: US3 (T014)
 3. US2 → kids earn rewards at End Day (core mechanic complete)
 4. US3 → activity log shows reward events (visibility complete)
 5. Phase 6 → E2E coverage
+6. US4 → undo End Day reverts rewards (reversal mechanic complete)
 
 ---
 
@@ -143,6 +168,7 @@ Task: US3 (T014)
 
 - `reward_points` in DB maps to `reward` in `Chore` TypeScript type (matching how `penalty` is named)
 - `reward_snapshot` maps to `rewardSnapshot` in `ChoreCompletion` TypeScript type
-- The `after_activity_log_insert` trigger automatically recalculates `kids.points` — no manual balance update needed in `endDay`
+- The `after_activity_log_insert` trigger automatically recalculates `kids.points` — no manual balance update needed in `endDay` or `undoEndDay`
 - `calculateChoreRewards` in `lib/points.ts` is a pure function for unit testing; `endDay` uses it to determine which completions generate events
-- No reversal event type needed — unchecking before End Day simply means the chore is incomplete, so no reward is granted
+- No reversal event needed for unchecking before End Day — the reward was never credited to the balance; `chore_completion_reward_reversed` is exclusively for undo End Day
+- T016 creates a new migration (0012) rather than modifying 0011, to avoid re-applying an already-written migration against local Supabase

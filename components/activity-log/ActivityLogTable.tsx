@@ -24,6 +24,7 @@ const ACTION_LABELS: Record<ActivityLogEntry['actionType'], string> = {
   chore_unassigned: 'Chore Unassigned',
   manual_adjustment: 'Manual Adjustment',
   chore_completion_reward: 'Chore Reward 🏆',
+  chore_completion_reward_reversed: 'Chore Reward Reversed',
 }
 
 interface ActivityLogTableProps {
@@ -64,7 +65,7 @@ const columns = [
           {actionType === 'manual_adjustment' && reason && (
             <p className="text-xs text-gray-500 mt-1">{reason}</p>
           )}
-          {actionType === 'chore_completion_reward' && choreName && (
+          {(actionType === 'chore_completion_reward' || actionType === 'chore_completion_reward_reversed') && choreName && (
             <p className="text-xs text-gray-500 mt-1">{choreName}</p>
           )}
         </div>

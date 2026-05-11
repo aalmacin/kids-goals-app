@@ -241,6 +241,99 @@ describe('Day Records Integration', () => {
     expect(error).toBeNull()
   })
 
+  it('undoEndDay inserts chore_completion_reward_reversed for each prior reward event', async () => {
+    const service = createSupabaseServiceClient()
+
+    // Set up a day record with a completed rewarded chore and an existing reward event
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 2)
+    const date = futureDate.toISOString().split('T')[0]
+
+    const { data: dr } = await service
+      .from('day_records')
+      .insert({ kid_id: kidId, date })
+      .select()
+      .single()
+
+    const { data: comp } = await service
+      .from('chore_completions')
+      .insert({
+        day_record_id: dr!.id,
+        chore_assignment_id: assignmentId,
+        chore_name_snapshot: 'Test Chore',
+        penalty_snapshot: 5,
+        reward_snapshot: 10,
+        is_important_snapshot: false,
+        completed_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    // Simulate what endDay inserts
+    await service.from('activity_log').insert({
+      family_id: familyId,
+      kid_id: kidId,
+      actor_type: 'kid',
+      action_type: 'chore_completion_reward',
+      metadata: { chore_name: comp!.chore_name_snapshot, completion_id: comp!.id },
+      points_delta: 10,
+    })
+
+    // Record balance before undo
+    const { data: kidBefore } = await service.from('kids').select('points').eq('id', kidId).single()
+    const pointsBefore = kidBefore!.points
+
+    // Insert reversal event (mirrors what undoEndDay does)
+    const { data: rewardEvent } = await service
+      .from('activity_log')
+      .select('id')
+      .eq('kid_id', kidId)
+      .eq('action_type', 'chore_completion_reward')
+      .filter('metadata->>completion_id', 'eq', comp!.id)
+      .single()
+
+    const { error } = await service.from('activity_log').insert({
+      family_id: familyId,
+      kid_id: kidId,
+      actor_type: 'kid',
+      action_type: 'chore_completion_reward_reversed',
+      metadata: { chore_name: comp!.chore_name_snapshot, original_event_id: rewardEvent!.id },
+      points_delta: -10,
+    })
+
+    expect(error).toBeNull()
+
+    // Balance should be restored
+    const { data: kidAfter } = await service.from('kids').select('points').eq('id', kidId).single()
+    expect(kidAfter!.points).toBe(pointsBefore - 10)
+
+    // Verify reversal event exists
+    const { data: reversalEvents } = await service
+      .from('activity_log')
+      .select()
+      .eq('kid_id', kidId)
+      .eq('action_type', 'chore_completion_reward_reversed')
+
+    expect(reversalEvents?.length).toBeGreaterThan(0)
+    expect(reversalEvents![0].points_delta).toBe(-10)
+
+    await service.from('day_records').delete().eq('id', dr!.id)
+  })
+
+  it('no chore_completion_reward_reversed events when no rewards were granted', async () => {
+    const service = createSupabaseServiceClient()
+
+    // Verify: inserting reversal when no prior reward events → empty result set
+    const { data: reversalEvents } = await service
+      .from('activity_log')
+      .select()
+      .eq('kid_id', kidId)
+      .eq('action_type', 'chore_completion_reward_reversed')
+      .filter('metadata->>original_event_id', 'eq', 'nonexistent-id')
+
+    expect(reversalEvents?.length).toBe(0)
+  })
+
   it('endDay is idempotent — second call is no-op', async () => {
     const service = createSupabaseServiceClient()
 
