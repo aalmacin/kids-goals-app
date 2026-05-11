@@ -264,14 +264,43 @@ export async function undoEndDay(dayRecordId: string) {
   if (!dayRecord?.ended_at) return { error: 'Day has not been ended' }
   if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
 
-  // Fetch activity_log entries for this day that affected points
+  // Find the most recent day_ended event to establish the upper bound of the current End Day run
+  const { data: dayEndedEvent } = await supabase
+    .from('activity_log')
+    .select('created_at')
+    .eq('kid_id', kid.id)
+    .eq('action_type', 'day_ended')
+    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const endedAt = dayEndedEvent?.created_at ?? new Date().toISOString()
+
+  // Find the most recent day_undone event before this End Day — establishes the lower bound
+  // so we only reverse events inserted during the current End Day run (FR-013)
+  const { data: lastUndoneEvent } = await supabase
+    .from('activity_log')
+    .select('created_at')
+    .eq('kid_id', kid.id)
+    .eq('action_type', 'day_undone')
+    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .lt('created_at', endedAt)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const afterAt = lastUndoneEvent?.created_at ?? '1970-01-01T00:00:00.000Z'
+
+  // Fetch only events inserted during the current End Day run
   const { data: logEntries } = await supabase
     .from('activity_log')
-    .select('action_type, points_delta')
+    .select('id, action_type, points_delta, metadata')
     .eq('kid_id', kid.id)
-    .in('action_type', ['penalty_applied', 'effort_awarded'])
+    .in('action_type', ['penalty_applied', 'effort_awarded', 'chore_completion_reward'])
     .not('points_delta', 'is', null)
-    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .gt('created_at', afterAt)
+    .lte('created_at', endedAt)
 
   for (const entry of logEntries ?? []) {
     if (entry.action_type === 'penalty_applied') {
@@ -292,27 +321,8 @@ export async function undoEndDay(dayRecordId: string) {
         metadata: { day_record_id: dayRecordId },
         points_delta: -(entry.points_delta!),
       })
-    }
-  }
-
-  // Reverse chore_completion_reward events for this day
-  const { data: dayCompletions } = await supabase
-    .from('chore_completions')
-    .select('id')
-    .eq('day_record_id', dayRecordId)
-
-  const completionIdSet = new Set((dayCompletions ?? []).map((c) => c.id))
-
-  const { data: rewardEntries } = await supabase
-    .from('activity_log')
-    .select('id, points_delta, metadata')
-    .eq('kid_id', kid.id)
-    .eq('action_type', 'chore_completion_reward')
-    .not('points_delta', 'is', null)
-
-  for (const entry of rewardEntries ?? []) {
-    const meta = entry.metadata as Record<string, unknown>
-    if (typeof meta.completion_id === 'string' && completionIdSet.has(meta.completion_id)) {
+    } else if (entry.action_type === 'chore_completion_reward') {
+      const meta = entry.metadata as Record<string, unknown>
       await supabase.from('activity_log').insert({
         family_id: kid.family_id,
         kid_id: kid.id,

@@ -334,6 +334,131 @@ describe('Day Records Integration', () => {
     expect(reversalEvents?.length).toBe(0)
   })
 
+  it('undo end day with all chores completed — only events from current run are reversed, no phantom gains (FR-013)', async () => {
+    const service = createSupabaseServiceClient()
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 10)
+    const date = futureDate.toISOString().split('T')[0]
+
+    const { data: dr } = await service
+      .from('day_records')
+      .insert({ kid_id: kidId, date })
+      .select()
+      .single()
+
+    const testDayRecordId = dr!.id
+
+    // Cycle 1: simulate End Day where a penalty WAS applied
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'penalty_applied',
+      metadata: { day_record_id: testDayRecordId, total_penalty: 150 },
+      points_delta: -150,
+    })
+    await service.from('day_records').update({ ended_at: new Date().toISOString() }).eq('id', testDayRecordId)
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'day_ended',
+      metadata: { day_record_id: testDayRecordId },
+      points_delta: null,
+    })
+
+    // Cycle 1 undo: penalty reversed, day_undone recorded
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'penalty_reversed',
+      metadata: { day_record_id: testDayRecordId },
+      points_delta: 150,
+    })
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'day_undone',
+      metadata: { day_record_id: testDayRecordId },
+      points_delta: null,
+    })
+    await service.from('day_records').update({ ended_at: null }).eq('id', testDayRecordId)
+
+    // Ensure Cycle 2 events have later created_at than Cycle 1
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Cycle 2: all chores completed — only effort inserted, no penalty
+    const effortPoints = 15
+    const { data: kidBeforeCycle2 } = await service.from('kids').select('points').eq('id', kidId).single()
+    const pointsBeforeCycle2 = kidBeforeCycle2!.points
+
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'effort_awarded',
+      metadata: { effort_level_id: 'test-effort-id', effort_level_name: 'Medium' },
+      points_delta: effortPoints,
+    })
+    await service.from('day_records').update({ ended_at: new Date().toISOString() }).eq('id', testDayRecordId)
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'day_ended',
+      metadata: { day_record_id: testDayRecordId },
+      points_delta: null,
+    })
+
+    const { data: kidAfterEndDay } = await service.from('kids').select('points').eq('id', kidId).single()
+    expect(kidAfterEndDay!.points).toBe(pointsBeforeCycle2 + effortPoints)
+
+    // Verify the timestamp-window query (the fixed undoEndDay logic) only finds the Cycle 2 effort event
+    const { data: dayEndedEvent } = await service
+      .from('activity_log')
+      .select('created_at')
+      .eq('kid_id', kidId)
+      .eq('action_type', 'day_ended')
+      .filter('metadata->>day_record_id', 'eq', testDayRecordId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const endedAt = dayEndedEvent!.created_at
+
+    const { data: lastUndoneEvent } = await service
+      .from('activity_log')
+      .select('created_at')
+      .eq('kid_id', kidId)
+      .eq('action_type', 'day_undone')
+      .filter('metadata->>day_record_id', 'eq', testDayRecordId)
+      .lt('created_at', endedAt)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const afterAt = lastUndoneEvent?.created_at ?? '1970-01-01T00:00:00.000Z'
+
+    const { data: eventsToReverse } = await service
+      .from('activity_log')
+      .select('action_type, points_delta')
+      .eq('kid_id', kidId)
+      .in('action_type', ['penalty_applied', 'effort_awarded', 'chore_completion_reward'])
+      .not('points_delta', 'is', null)
+      .gt('created_at', afterAt)
+      .lte('created_at', endedAt)
+
+    // Must find only the Cycle 2 effort event — NOT the stale Cycle 1 penalty_applied
+    expect(eventsToReverse?.length).toBe(1)
+    expect(eventsToReverse![0].action_type).toBe('effort_awarded')
+    expect(eventsToReverse![0].points_delta).toBe(effortPoints)
+
+    // Simulate inserting the reversal (effort_reversed)
+    await service.from('activity_log').insert({
+      family_id: familyId, kid_id: kidId, actor_type: 'kid',
+      action_type: 'effort_reversed',
+      metadata: { day_record_id: testDayRecordId },
+      points_delta: -effortPoints,
+    })
+
+    const { data: kidAfterUndo } = await service.from('kids').select('points').eq('id', kidId).single()
+    // Balance must return exactly to pre-Cycle-2 value — no phantom gains
+    expect(kidAfterUndo!.points).toBe(pointsBeforeCycle2)
+
+    await service.from('day_records').delete().eq('id', testDayRecordId)
+  })
+
   it('endDay is idempotent — second call is no-op', async () => {
     const service = createSupabaseServiceClient()
 

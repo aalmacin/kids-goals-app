@@ -114,8 +114,8 @@
 
 **Independent Test**: Check all chores for a kid. Trigger End Day (balance increases by effort amount only). Trigger Undo End Day — balance returns exactly to the pre-End-Day value with no net gain.
 
-- [ ] T023 [US4] Fix `undoEndDay` in lib/actions/day-records.ts — before inserting any reversal, query `activity_log` for the actual events recorded for that `day_record_id` during End Day (filter by `action_type IN ('penalty_applied', 'effort_awarded', 'chore_completion_reward')` and the `day_ended` timestamp); only reverse events that are present in the result set; do NOT synthesise reversals for events that do not exist (FR-013)
-- [ ] T024 [US4] Update __tests__/integration/day-records.test.ts — add test: all chores completed for a kid (no `penalty_applied` event inserted at End Day), trigger `undoEndDay`; assert kid balance decreases by effort amount only; assert no phantom positive adjustments; assert no `penalty_applied_reversed` or equivalent events exist in activity_log after undo (depends on T023)
+- [x] T023 [US4] Fix `undoEndDay` in lib/actions/day-records.ts — before inserting any reversal, query `activity_log` for the actual events recorded for that `day_record_id` during End Day (filter by `action_type IN ('penalty_applied', 'effort_awarded', 'chore_completion_reward')` and the `day_ended` timestamp); only reverse events that are present in the result set; do NOT synthesise reversals for events that do not exist (FR-013)
+- [x] T024 [US4] Update __tests__/integration/day-records.test.ts — add test: all chores completed for a kid (no `penalty_applied` event inserted at End Day), trigger `undoEndDay`; assert kid balance decreases by effort amount only; assert no phantom positive adjustments; assert no `penalty_applied_reversed` or equivalent events exist in activity_log after undo (depends on T023)
 
 **Checkpoint**: Undo End Day produces zero net balance change when no penalty was applied; repeating End Day → Undo End Day cycle does not accumulate points.
 
