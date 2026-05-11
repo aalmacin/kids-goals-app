@@ -32,3 +32,4 @@
 ## Notes
 
 - All items pass. Spec is ready for `/speckit-clarify` or `/speckit-plan`.
+- 2026-05-10: Added FR-013 and edge case documenting the undo end day bug — undo must only reverse events that were actually recorded, not synthesise reversals for penalties that were never applied.

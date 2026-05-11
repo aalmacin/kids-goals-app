@@ -85,6 +85,7 @@ A parent reviewing the activity log can see chore completion reward events along
 - What happens when End Day is triggered and a chore is still marked complete? The penalty is not applied (chore is complete), and the reward is granted at that moment — no additional action needed.
 - What if a kid unchecks a chore before End Day? The chore is incomplete at End Day, so no reward is granted and no penalty-reversal is needed (reward was never credited to the balance).
 - What happens if End Day is undone after rewards are granted? One `chore_completion_reward_reversed` event is inserted per original `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original snapshot. The kid's balance is restored via the existing `activity_log` trigger. Reversal events appear in the activity log as distinct "Chore Reward Reversed" entries.
+- **Bug**: When all chores are checked and End Day is undone, points incorrectly increase instead of simply reverting the effort level. Root cause: the undo logic generates reversal events for chore penalties that were never applied (all chores were complete = no penalty events recorded), resulting in spurious positive point adjustments. Undo MUST only reverse events that were actually recorded during that specific End Day run — it must not synthesise reversal events for events that do not exist.
 
 ## Requirements *(mandatory)*
 
@@ -102,6 +103,7 @@ A parent reviewing the activity log can see chore completion reward events along
 - **FR-010**: Each chore tile on the kid's dashboard MUST display the configured reward point value (if > 0) on both completed and uncompleted tiles, so kids can see what they stand to earn (uncompleted) and confirm what is queued for End Day (completed).
 - **FR-011**: When End Day is undone, the system MUST insert one `chore_completion_reward_reversed` event per `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original reward snapshot, restoring the kid's balance via the existing trigger.
 - **FR-012**: The activity log MUST display `chore_completion_reward_reversed` events with a distinct label (e.g., "Chore Reward Reversed"), the negative point delta, and timestamp, clearly distinguishable from reward grant events.
+- **FR-013**: The Undo End Day operation MUST only reverse point events that were actually recorded during that End Day run. It MUST NOT generate reversal events for chore penalties that were never applied (e.g., chores that were completed incur no penalty, so no penalty reversal event should be created on undo).
 
 ### Key Entities
 
