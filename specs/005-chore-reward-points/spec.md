@@ -24,6 +24,13 @@
 - Q: How should reward reversal be recorded when End Day is undone? → A: Insert one offsetting negative event per reversed reward (`chore_completion_reward_reversed`), preserving the immutable audit log.
 - Q: Should `chore_completion_reward_reversed` events appear in the parent-facing activity log? → A: Yes — show as distinct labeled entries (e.g., "Chore Reward Reversed") alongside other events.
 
+### Session 2026-05-11
+
+- Q: What is "effort" in the End Day dialog? → A: A predefined effort level the kid selects in the End Day dialog (e.g., "Awesome (+15 pts)", "Great (+10 pts)") that grants bonus points when End Day is confirmed.
+- Q: Where does the UUID appear instead of the effort label? → A: Inside the select/dropdown input itself — after selecting an effort option, the input displays the raw UUID instead of the label text.
+- Q: Does the UUID appear every time or only after a prior End Day? → A: Every time — UUID shows immediately on first selection in the dialog.
+- Q: Are effort options fetched dynamically or hardcoded? → A: Fetched dynamically from the database/API — each effort option carries a UUID as its ID.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Configure Reward Points on a Chore (Priority: P1)
@@ -86,6 +93,7 @@ A parent reviewing the activity log can see chore completion reward events along
 - What if a kid unchecks a chore before End Day? The chore is incomplete at End Day, so no reward is granted and no penalty-reversal is needed (reward was never credited to the balance).
 - What happens if End Day is undone after rewards are granted? One `chore_completion_reward_reversed` event is inserted per original `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original snapshot. The kid's balance is restored via the existing `activity_log` trigger. Reversal events appear in the activity log as distinct "Chore Reward Reversed" entries.
 - **Bug**: When all chores are checked and End Day is undone, points incorrectly increase instead of simply reverting the effort level. Root cause: the undo logic generates reversal events for chore penalties that were never applied (all chores were complete = no penalty events recorded), resulting in spurious positive point adjustments. Undo MUST only reverse events that were actually recorded during that specific End Day run — it must not synthesise reversal events for events that do not exist.
+- **Bug**: After selecting an effort level in the End Day dialog, the select input displays the raw UUID instead of the human-readable label (e.g., shows `8748ed31-c744-473f-bf91-8742b5fcda53` instead of "Awesome (+15 pts)"). This happens on every selection — not only after a prior End Day. Root cause: the select component's `onChange` stores the UUID as the controlled value, but the component cannot resolve UUID → label for display because the selected value type does not match how the fetched option objects are keyed for rendering. Fix: ensure the select's controlled value and option `value` props use the same format (either both use the full option object, or a UUID-to-label lookup is applied for display).
 
 ## Requirements *(mandatory)*
 
@@ -104,6 +112,7 @@ A parent reviewing the activity log can see chore completion reward events along
 - **FR-011**: When End Day is undone, the system MUST insert one `chore_completion_reward_reversed` event per `chore_completion_reward` event from that End Day run, with a negative `points_delta` equal to the original reward snapshot, restoring the kid's balance via the existing trigger.
 - **FR-012**: The activity log MUST display `chore_completion_reward_reversed` events with a distinct label (e.g., "Chore Reward Reversed"), the negative point delta, and timestamp, clearly distinguishable from reward grant events.
 - **FR-013**: The Undo End Day operation MUST only reverse point events that were actually recorded during that End Day run. It MUST NOT generate reversal events for chore penalties that were never applied (e.g., chores that were completed incur no penalty, so no penalty reversal event should be created on undo).
+- **FR-014**: The effort level select in the End Day dialog MUST always display the human-readable label (e.g., "Awesome (+15 pts)") as the selected option text — never the raw UUID — regardless of what internal value is used to submit the selection.
 
 ### Key Entities
 
