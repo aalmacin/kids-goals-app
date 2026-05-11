@@ -121,6 +121,25 @@
 
 ---
 
+## Phase 9: Bug Fix — EffortDropdown Showing UUID Instead of Label (FR-014)
+
+**Goal**: Fix `EffortDropdown` so the select trigger always displays the human-readable effort label (e.g., "Awesome (+15 pts)") instead of the raw UUID after an option is selected.
+
+**Root cause**: `components/ui/select.tsx` wraps `@base-ui/react/select`. Base UI's `Select.Value` resolves the display label from an internal context populated during popup interaction. In controlled mode (value set externally via `useState`), the popup has not been rendered so no label is in context — Base UI falls back to rendering the raw value string (the UUID).
+
+**Reproduction**:
+1. Open End Day dialog (all chores must be complete)
+2. Select any effort level
+3. Trigger shows UUID (e.g., `8748ed31-c744-473f-bf91-8742b5fcda53`) instead of label
+
+**Independent Test**: Open End Day dialog, select "Awesome (+15 pts)" — the select trigger shows "Awesome (+15 pts)", not a UUID.
+
+- [ ] T025 Fix `components/effort-dropdown/EffortDropdown.tsx` — derive `selectedLevel` via `effortLevels.find(l => l.id === value) ?? null` and pass `selectedLevel ? \`${selectedLevel.name} (+${selectedLevel.points} pts)\` : undefined` as children of `SelectValue` to bypass Base UI's internal label-resolution mechanism
+
+**Checkpoint**: Selecting any effort option in the End Day dialog shows the label text immediately with no UUID leakage.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

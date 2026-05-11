@@ -30,6 +30,12 @@
 - **Rationale**: Migration `0006_event_sourcing.sql` already set this up for all event types. Each `chore_completion_reward` row inserted will fire the trigger, keeping the balance event-sourced.
 - **Alternatives considered**: Manual balance update in `endDay` (rejected — bypasses event sourcing, risks drift).
 
+## Decision: EffortDropdown UUID display fix — derive label from effortLevels prop
+
+- **Decision**: Fix `EffortDropdown` by looking up the selected `EffortLevel` object from the `effortLevels` prop using the current `value` UUID and rendering the label as children of `SelectValue`, rather than relying on Base UI's internal label-resolution mechanism.
+- **Rationale**: `components/ui/select.tsx` wraps `@base-ui/react/select` (Base UI v1), not Radix UI. Base UI's `Select.Value` populates its display label from an internal context that is only updated when the user interacts with a rendered popup. In controlled mode (`value` set externally via `useState`), no popup has been opened, so Base UI has no label in context and falls back to rendering the raw value string (the UUID). The fix bypasses this mechanism entirely: `effortLevels.find(l => l.id === value)` always resolves the label correctly from props, with no dependency on popup rendering state.
+- **Alternatives considered**: Switching `Select.Root` value type to the full `EffortLevel` object (rejected — requires changes to `EndDayButton` state type and `endDay` Server Action signature); using uncontrolled Select with `defaultValue` (rejected — would lose the ability to read `selectedEffort` in `handleConfirm`).
+
 ## Decision: Reward badge visible on both completed and uncompleted tiles
 
 - **Decision**: Show `+N pts` badge on both completed and uncompleted chore tiles when `reward_snapshot > 0`.

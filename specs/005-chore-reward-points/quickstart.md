@@ -48,6 +48,13 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 3. **Parent**: Undo End Day → balance returns to exactly the pre-End-Day value (net change: −15)
 4. **Repeat step 2–3** several times → balance must not drift upward (confirms no phantom reversal events are being created)
 
+### Effort dropdown display bug fix (FR-014)
+
+1. Open the End Day dialog (kid must have all chores done for the effort dropdown to appear)
+2. Select any effort level (e.g., "Awesome (+15 pts)")
+3. The trigger must display the label text — **not** a UUID string
+4. Confirm End Day — effort points are applied correctly
+
 ## Key Files Changed
 
 | File | Change |
