@@ -5,6 +5,7 @@ import { getKidsByFamily } from '@/lib/db/kids'
 import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreAction } from '@/lib/actions/chores'
 import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
 import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
+import { ChoreEditForm } from '@/components/chore-list/ChoreEditForm'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,7 +51,7 @@ export default async function ChoresPage() {
         </CardHeader>
         <CardContent>
           <form action={createChoreAction} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Chore Name</Label>
                 <Input id="name" name="name" placeholder="Brush teeth" required />
@@ -58,6 +59,10 @@ export default async function ChoresPage() {
               <div className="space-y-2">
                 <Label htmlFor="penalty">Penalty Points</Label>
                 <Input id="penalty" name="penalty" type="number" min={0} defaultValue={0} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reward">Reward Points</Label>
+                <Input id="reward" name="reward" type="number" min={0} defaultValue={0} />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -90,7 +95,12 @@ export default async function ChoresPage() {
                   <div>
                     <p className="font-semibold text-gray-800">{chore.name}</p>
                     <div className="flex gap-2 mt-1 flex-wrap">
-                      <Badge variant="outline" className="text-xs">-{chore.penalty} pts</Badge>
+                      {chore.penalty > 0 && (
+                        <Badge variant="outline" className="text-xs">-{chore.penalty} pts</Badge>
+                      )}
+                      {chore.reward_points > 0 && (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300">+{chore.reward_points} pts</Badge>
+                      )}
                       {chore.is_important && (
                         <Badge className="text-xs bg-orange-100 text-orange-700">Important</Badge>
                       )}
@@ -110,6 +120,9 @@ export default async function ChoresPage() {
                 choreId={chore.id}
                 initialDays={chore.allowed_days ?? []}
               />
+
+              {/* Edit Chore */}
+              <ChoreEditForm choreId={chore.id} chore={chore} />
 
               {/* Kid Assignments */}
               {kids.length > 0 && (

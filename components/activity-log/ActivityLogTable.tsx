@@ -23,6 +23,8 @@ const ACTION_LABELS: Record<ActivityLogEntry['actionType'], string> = {
   chore_assigned: 'Chore Assigned',
   chore_unassigned: 'Chore Unassigned',
   manual_adjustment: 'Manual Adjustment',
+  chore_completion_reward: 'Chore Reward 🏆',
+  chore_completion_reward_reversed: 'Chore Reward Reversed',
 }
 
 interface ActivityLogTableProps {
@@ -54,6 +56,7 @@ const columns = [
       const actionType = row.original.actionType
       const metadata = row.original.metadata as Record<string, string> | null
       const reason = metadata?.reason
+      const choreName = metadata?.chore_name
       return (
         <div>
           <Badge variant="outline" className="text-xs">
@@ -61,6 +64,9 @@ const columns = [
           </Badge>
           {actionType === 'manual_adjustment' && reason && (
             <p className="text-xs text-gray-500 mt-1">{reason}</p>
+          )}
+          {(actionType === 'chore_completion_reward' || actionType === 'chore_completion_reward_reversed') && choreName && (
+            <p className="text-xs text-gray-500 mt-1">{choreName}</p>
           )}
         </div>
       )

@@ -32,7 +32,7 @@ export function ChoreScheduleEditor({ choreId, initialDays }: Props) {
         disabled={isPending}
         className="text-xs"
       >
-        {isPending ? 'Saving…' : 'Save'}
+        {isPending ? 'Saving…' : 'Save Schedule'}
       </Button>
     </div>
   )

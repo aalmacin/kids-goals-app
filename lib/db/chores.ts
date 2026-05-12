@@ -4,6 +4,7 @@ export async function createChore(
   familyId: string,
   name: string,
   penalty: number,
+  reward: number,
   isImportant: boolean,
   icon: string,
   allowedDays?: number[]
@@ -15,6 +16,7 @@ export async function createChore(
       family_id: familyId,
       name,
       penalty,
+      reward_points: reward,
       is_important: isImportant,
       icon,
       allowed_days: allowedDays && allowedDays.length > 0 ? allowedDays : null,
@@ -39,7 +41,7 @@ export async function getChoreLibrary(familyId: string) {
 
 export async function updateChore(
   choreId: string,
-  updates: { name?: string; penalty?: number; is_important?: boolean; icon?: string; allowed_days?: number[] | null }
+  updates: { name?: string; penalty?: number; reward_points?: number; is_important?: boolean; icon?: string; allowed_days?: number[] | null }
 ) {
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase

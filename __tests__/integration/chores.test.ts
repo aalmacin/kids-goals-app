@@ -60,7 +60,44 @@ describe('Chore Management Integration', () => {
 
     expect(error).toBeNull()
     expect(data?.name).toBe('Brush Teeth')
+    expect(data?.reward_points).toBe(0)
     choreId = data!.id
+  })
+
+  it('creates a chore with reward_points', async () => {
+    const service = createSupabaseServiceClient()
+    const { data, error } = await service
+      .from('chores')
+      .insert({ family_id: familyId, name: 'Make Bed', penalty: 5, reward_points: 8, is_important: false, icon: 'home' })
+      .select()
+      .single()
+
+    expect(error).toBeNull()
+    expect(data?.reward_points).toBe(8)
+
+    await service.from('chores').delete().eq('id', data!.id)
+  })
+
+  it('updates reward_points on a chore', async () => {
+    const service = createSupabaseServiceClient()
+    const { error } = await service
+      .from('chores')
+      .update({ reward_points: 15 })
+      .eq('id', choreId)
+
+    expect(error).toBeNull()
+
+    const { data } = await service.from('chores').select('reward_points').eq('id', choreId).single()
+    expect(data?.reward_points).toBe(15)
+  })
+
+  it('rejects negative reward_points', async () => {
+    const service = createSupabaseServiceClient()
+    const { error } = await service
+      .from('chores')
+      .insert({ family_id: familyId, name: 'Bad Chore', penalty: 0, reward_points: -1, is_important: false, icon: 'x' })
+
+    expect(error).not.toBeNull()
   })
 
   it('assigns chore independently to a kid', async () => {

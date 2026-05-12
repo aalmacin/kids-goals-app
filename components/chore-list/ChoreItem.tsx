@@ -55,6 +55,12 @@ export function ChoreItem({ completion, dayRecordId, isEnded }: ChoreItemProps) 
         </Badge>
       )}
 
+      {completion.rewardSnapshot > 0 && (
+        <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+          +{completion.rewardSnapshot} pts
+        </Badge>
+      )}
+
       {completion.isImportantSnapshot && (
         <Badge className="bg-orange-100 text-orange-700 text-xs">!</Badge>
       )}

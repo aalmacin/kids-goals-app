@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
-import { calculatePenalties, calculateEffortReward } from '@/lib/points'
+import { calculatePenalties, calculateEffortReward, calculateChoreRewards } from '@/lib/points'
 import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
 import type { ChoreCompletion } from '@/lib/types'
 
@@ -164,6 +164,7 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     choreNameSnapshot: c.chore_name_snapshot,
     penaltySnapshot: c.penalty_snapshot,
     isImportantSnapshot: c.is_important_snapshot,
+    rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
   }))
 
@@ -178,6 +179,19 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
       action_type: 'penalty_applied' as const,
       metadata: { day_record_id: dayRecordId, total_penalty: totalPenalty },
       points_delta: -totalPenalty,
+    })
+  }
+
+  // Grant reward points for each completed chore with reward_snapshot > 0
+  const choreRewards = calculateChoreRewards(completions)
+  for (const { completion, reward } of choreRewards) {
+    await supabase.from('activity_log').insert({
+      family_id: kid!.family_id,
+      kid_id: kidId,
+      actor_type: 'kid' as const,
+      action_type: 'chore_completion_reward' as const,
+      metadata: { chore_name: completion.choreNameSnapshot, completion_id: completion.id },
+      points_delta: reward,
     })
   }
 
@@ -250,14 +264,43 @@ export async function undoEndDay(dayRecordId: string) {
   if (!dayRecord?.ended_at) return { error: 'Day has not been ended' }
   if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
 
-  // Fetch activity_log entries for this day that affected points
+  // Find the most recent day_ended event to establish the upper bound of the current End Day run
+  const { data: dayEndedEvent } = await supabase
+    .from('activity_log')
+    .select('created_at')
+    .eq('kid_id', kid.id)
+    .eq('action_type', 'day_ended')
+    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const endedAt = dayEndedEvent?.created_at ?? new Date().toISOString()
+
+  // Find the most recent day_undone event before this End Day — establishes the lower bound
+  // so we only reverse events inserted during the current End Day run (FR-013)
+  const { data: lastUndoneEvent } = await supabase
+    .from('activity_log')
+    .select('created_at')
+    .eq('kid_id', kid.id)
+    .eq('action_type', 'day_undone')
+    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .lt('created_at', endedAt)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const afterAt = lastUndoneEvent?.created_at ?? '1970-01-01T00:00:00.000Z'
+
+  // Fetch only events inserted during the current End Day run
   const { data: logEntries } = await supabase
     .from('activity_log')
-    .select('action_type, points_delta')
+    .select('id, action_type, points_delta, metadata')
     .eq('kid_id', kid.id)
-    .in('action_type', ['penalty_applied', 'effort_awarded'])
+    .in('action_type', ['penalty_applied', 'effort_awarded', 'chore_completion_reward'])
     .not('points_delta', 'is', null)
-    .filter('metadata->>day_record_id', 'eq', dayRecordId)
+    .gt('created_at', afterAt)
+    .lte('created_at', endedAt)
 
   for (const entry of logEntries ?? []) {
     if (entry.action_type === 'penalty_applied') {
@@ -276,6 +319,16 @@ export async function undoEndDay(dayRecordId: string) {
         actor_type: 'kid' as const,
         action_type: 'effort_reversed' as const,
         metadata: { day_record_id: dayRecordId },
+        points_delta: -(entry.points_delta!),
+      })
+    } else if (entry.action_type === 'chore_completion_reward') {
+      const meta = entry.metadata as Record<string, unknown>
+      await supabase.from('activity_log').insert({
+        family_id: kid.family_id,
+        kid_id: kid.id,
+        actor_type: 'kid' as const,
+        action_type: 'chore_completion_reward_reversed' as const,
+        metadata: { chore_name: meta.chore_name as string, original_event_id: entry.id },
         points_delta: -(entry.points_delta!),
       })
     }

@@ -95,6 +95,7 @@ export default async function DashboardPage({
     choreNameSnapshot: c.chore_name_snapshot,
     penaltySnapshot: c.penalty_snapshot,
     isImportantSnapshot: c.is_important_snapshot,
+    rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
   }))
 

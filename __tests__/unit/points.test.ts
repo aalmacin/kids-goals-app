@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   calculatePenalties,
   calculateEffortReward,
+  calculateChoreRewards,
   canAffordRestDay,
   applyPointsFloor,
   REST_DAY_COST,
@@ -18,6 +19,7 @@ function makeCompletion(
     choreNameSnapshot: 'Test Chore',
     penaltySnapshot: 10,
     isImportantSnapshot: false,
+    rewardSnapshot: 0,
     completedAt: null,
     ...overrides,
   }
@@ -95,6 +97,41 @@ describe('canAffordRestDay', () => {
 
   it('returns false at 0 points', () => {
     expect(canAffordRestDay(0)).toBe(false)
+  })
+})
+
+describe('calculateChoreRewards', () => {
+  it('returns empty array for empty completions list', () => {
+    expect(calculateChoreRewards([])).toEqual([])
+  })
+
+  it('returns only completed completions with reward > 0', () => {
+    const completions = [
+      makeCompletion({ id: 'c1', rewardSnapshot: 10, completedAt: '2026-05-07T10:00:00Z' }),
+      makeCompletion({ id: 'c2', rewardSnapshot: 5, completedAt: null }),
+      makeCompletion({ id: 'c3', rewardSnapshot: 0, completedAt: '2026-05-07T11:00:00Z' }),
+      makeCompletion({ id: 'c4', rewardSnapshot: 20, completedAt: '2026-05-07T12:00:00Z' }),
+    ]
+    const result = calculateChoreRewards(completions)
+    expect(result).toHaveLength(2)
+    expect(result[0].completion.id).toBe('c1')
+    expect(result[0].reward).toBe(10)
+    expect(result[1].completion.id).toBe('c4')
+    expect(result[1].reward).toBe(20)
+  })
+
+  it('excludes uncompleted completions even with reward > 0', () => {
+    const completions = [
+      makeCompletion({ rewardSnapshot: 15, completedAt: null }),
+    ]
+    expect(calculateChoreRewards(completions)).toEqual([])
+  })
+
+  it('excludes completed completions with rewardSnapshot of 0', () => {
+    const completions = [
+      makeCompletion({ rewardSnapshot: 0, completedAt: '2026-05-07T10:00:00Z' }),
+    ]
+    expect(calculateChoreRewards(completions)).toEqual([])
   })
 })
 

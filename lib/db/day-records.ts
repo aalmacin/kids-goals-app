@@ -43,7 +43,7 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
     // Fetch chore details for each assignment
     const choreIds = (assignments ?? []).map((a) => a.chore_id)
     const { data: chores } = choreIds.length > 0
-      ? await supabase.from('chores').select('id, name, penalty, is_important, deleted_at, allowed_days').in('id', choreIds)
+      ? await supabase.from('chores').select('id, name, penalty, reward_points, is_important, deleted_at, allowed_days').in('id', choreIds)
       : { data: [] }
 
     const choreMap = new Map((chores ?? []).map((c) => [c.id, c]))
@@ -61,6 +61,7 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
         chore_assignment_id: assignment.id,
         chore_name_snapshot: chore!.name,
         penalty_snapshot: chore!.penalty,
+        reward_snapshot: chore!.reward_points,
         is_important_snapshot: chore!.is_important,
       }))
 
@@ -96,7 +97,7 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
       const choreIds = newAssignments.map((a) => a.chore_id)
       const { data: chores } = await supabase
         .from('chores')
-        .select('id, name, penalty, is_important, deleted_at, allowed_days')
+        .select('id, name, penalty, reward_points, is_important, deleted_at, allowed_days')
         .in('id', choreIds)
 
       const choreMap = new Map((chores ?? []).map((c) => [c.id, c]))
@@ -114,6 +115,7 @@ export async function getOrCreateDayRecord(kidId: string, date: string): Promise
           chore_assignment_id: assignment.id,
           chore_name_snapshot: chore!.name,
           penalty_snapshot: chore!.penalty,
+          reward_snapshot: chore!.reward_points,
           is_important_snapshot: chore!.is_important,
         }))
 
