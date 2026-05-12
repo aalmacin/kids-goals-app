@@ -2,9 +2,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getFamilyByParentId } from '@/lib/db/families'
 import { getChoreLibrary } from '@/lib/db/chores'
 import { getKidsByFamily } from '@/lib/db/kids'
-import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreAction, updateChoreAction } from '@/lib/actions/chores'
+import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreAction } from '@/lib/actions/chores'
 import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
 import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
+import { ChoreEditForm } from '@/components/chore-list/ChoreEditForm'
 import { Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -95,7 +96,9 @@ export default async function ChoresPage() {
                   <div>
                     <p className="font-semibold text-gray-800">{chore.name}</p>
                     <div className="flex gap-2 mt-1 flex-wrap">
-                      <Badge variant="outline" className="text-xs">-{chore.penalty} pts</Badge>
+                      {chore.penalty > 0 && (
+                        <Badge variant="outline" className="text-xs">-{chore.penalty} pts</Badge>
+                      )}
                       {chore.reward_points > 0 && (
                         <Badge variant="outline" className="text-xs text-green-600 border-green-300">+{chore.reward_points} pts</Badge>
                       )}
@@ -124,33 +127,7 @@ export default async function ChoresPage() {
                 <summary className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-indigo-600 w-fit">
                   <Pencil className="w-3 h-3" /> Edit
                 </summary>
-                <form action={updateChoreAction.bind(null, chore.id)} className="mt-3 space-y-3 border-t pt-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor={`edit-name-${chore.id}`} className="text-xs">Chore Name</Label>
-                      <Input id={`edit-name-${chore.id}`} name="name" defaultValue={chore.name} required className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`edit-penalty-${chore.id}`} className="text-xs">Penalty Points</Label>
-                      <Input id={`edit-penalty-${chore.id}`} name="penalty" type="number" min={0} defaultValue={chore.penalty} className="h-8 text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`edit-reward-${chore.id}`} className="text-xs">Reward Points</Label>
-                      <Input id={`edit-reward-${chore.id}`} name="reward" type="number" min={0} defaultValue={chore.reward_points} className="h-8 text-sm" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" id={`edit-important-${chore.id}`} name="isImportant" value="true" defaultChecked={chore.is_important} className="w-4 h-4" />
-                      <Label htmlFor={`edit-important-${chore.id}`} className="text-xs">Important</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Icon</Label>
-                      <IconPicker name="icon" defaultValue={chore.icon} />
-                    </div>
-                    <Button type="submit" size="sm" className="h-7 text-xs">Save</Button>
-                  </div>
-                </form>
+                <ChoreEditForm choreId={chore.id} chore={chore} />
               </details>
 
               {/* Kid Assignments */}

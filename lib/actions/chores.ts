@@ -53,7 +53,11 @@ export async function createChoreAction(formData: FormData) {
   revalidatePath('/admin/chores')
 }
 
-export async function updateChoreAction(choreId: string, formData: FormData) {
+export async function updateChoreAction(
+  choreId: string,
+  _prevState: { error: string | null },
+  formData: FormData
+): Promise<{ error: string | null }> {
   const name = (formData.get('name') as string).trim()
   const penalty = Number(formData.get('penalty') ?? 0)
   const reward = Number(formData.get('reward') ?? 0)
@@ -61,18 +65,25 @@ export async function updateChoreAction(choreId: string, formData: FormData) {
   const icon = formData.get('icon') as string
   const allowedDays = parseAllowedDays(formData)
 
-  await requireParentFamily()
-  await updateChore(choreId, {
-    name,
-    penalty,
-    reward_points: reward,
-    is_important: isImportant,
-    icon,
-    allowed_days: allowedDays !== undefined
-      ? (allowedDays.length > 0 ? allowedDays : null)
-      : undefined,
-  })
+  try {
+    await requireParentFamily()
+    await updateChore(choreId, {
+      name,
+      penalty,
+      reward_points: reward,
+      is_important: isImportant,
+      icon,
+      allowed_days: allowedDays !== undefined
+        ? (allowedDays.length > 0 ? allowedDays : null)
+        : undefined,
+    })
+  } catch (err) {
+    console.error('[updateChoreAction] Failed to update chore:', choreId, err)
+    return { error: 'Failed to save chore. Please try again.' }
+  }
+
   revalidatePath('/admin/chores')
+  return { error: null }
 }
 
 export async function updateChoreScheduleAction(

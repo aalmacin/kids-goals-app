@@ -134,9 +134,43 @@
 
 **Independent Test**: Open End Day dialog, select "Awesome (+15 pts)" — the select trigger shows "Awesome (+15 pts)", not a UUID.
 
-- [ ] T025 Fix `components/effort-dropdown/EffortDropdown.tsx` — derive `selectedLevel` via `effortLevels.find(l => l.id === value) ?? null` and pass `selectedLevel ? \`${selectedLevel.name} (+${selectedLevel.points} pts)\` : undefined` as children of `SelectValue` to bypass Base UI's internal label-resolution mechanism
+- [x] T025 Fix `components/effort-dropdown/EffortDropdown.tsx` — derive `selectedLevel` via `effortLevels.find(l => l.id === value) ?? null` and pass `selectedLevel ? \`${selectedLevel.name} (+${selectedLevel.points} pts)\` : undefined` as children of `SelectValue` to bypass Base UI's internal label-resolution mechanism
 
 **Checkpoint**: Selecting any effort option in the End Day dialog shows the label text immediately with no UUID leakage.
+
+---
+
+## Phase 10: Bug Fix — Penalty Badge Always Shows on Chores Page (Zero-Value)
+
+**Goal**: Hide the penalty badge on the chores admin page when `penalty = 0`, consistent with how the reward badge already behaves on that same page and how both badges behave on the kid dashboard.
+
+**Reproduction**: Go to `/admin/chores`. Any chore with `Penalty Points = 0` shows a `-0 pts` badge.
+
+**Independent Test**: A chore with `penalty = 0` and `reward = 5` shows only the `+5 pts` badge. A chore with `penalty = 3` and `reward = 0` shows only the `-3 pts` badge. A chore with both `= 0` shows no point badges.
+
+- [x] T026 Fix `app/(admin)/admin/chores/page.tsx` — wrap the penalty `<Badge>` on line 98 with `{chore.penalty > 0 && ( ... )}` to mirror the existing `chore.reward_points > 0` guard directly below it
+
+**Checkpoint**: No `-0 pts` badge appears on any chore. Penalty and reward badges only render when their value is greater than 0.
+
+---
+
+## Phase 11: Bug Fix — Edit Form Reward Points Not Persisting (FR-015)
+
+**Goal**: Fix the edit chore form so that reward points changes are visible and errors are surfaced when `updateChoreAction` fails. Currently, when the server action fails (e.g., DB column missing, RLS error), there is no inline feedback — the form resets silently and the badge does not appear.
+
+**Root cause**: `updateChoreAction` has no error handling beyond `throw`. When Next.js 16.x + Turbopack catches the thrown error, it may not always surface the error overlay in the browser. The edit form UI has no success/failure indicator.
+
+**Reproduction**:
+1. Go to `/admin/chores`
+2. Open the Edit section on any chore
+3. Change Reward Points from 0 to 10 and click Save
+4. The page refreshes but no `+10 pts` badge appears
+
+**Independent Test**: Edit a chore's reward points, save, and see either a success confirmation OR a visible error message — never a silent no-op.
+
+- [x] T027 Fix `app/(admin)/admin/chores/page.tsx` and `lib/actions/chores.ts` — extract the edit chore form into a client component (`ChoreEditForm`) that uses `useActionState` with `updateChoreAction` returning `{ error: string | null }` so save failures display an inline error message below the form
+
+**Checkpoint**: Editing reward points shows the new badge value on success, or an inline error message on failure — no silent no-ops.
 
 ---
 

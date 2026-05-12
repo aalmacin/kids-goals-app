@@ -1,35 +1,29 @@
 # Implementation Plan: Chore Completion Reward Points
 
-**Branch**: `005-chore-reward-points` | **Date**: 2026-05-11 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/005-chore-reward-points/spec.md`
+**Branch**: `005-chore-reward-points` | **Date**: 2026-05-12 | **Spec**: specs/005-chore-reward-points/spec.md
 
 ## Summary
 
-Adds configurable reward points to chores. Parents set a `reward_points` value on library chores; kids earn those points when they complete a chore and End Day is triggered. Points are event-sourced via `chore_completion_reward` activity log entries (one per completed rewarded chore). End Day undo inserts `chore_completion_reward_reversed` events, restoring balance via the existing trigger. Includes a bug fix for `undoEndDay` generating phantom penalty reversal events, and a bug fix for `EffortDropdown` displaying a UUID instead of the effort label text in controlled mode under Base UI's Select.
+Enable parents to assign reward points to chores. When a kid completes a chore at End Day, points are credited to their balance and logged as a `chore_completion_reward` activity event. Includes three bug fixes: EffortDropdown UUID display (FR-014), penalty badge zero-value display, and edit-form reward update failure (FR-015).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5 (strict mode, no `any`)
-**Primary Dependencies**: Next.js 16.2.4 (App Router, Server Actions), React 19, @base-ui/react 1.4.1, shadcn/ui (Radix/Tailwind conventions), TanStack Query 5, TanStack Store 0.11, TanStack Table 8
-**Storage**: Supabase PostgreSQL (local instance for tests), RLS on all tables
-**Testing**: Vitest (unit + integration), Playwright (E2E against seeded local Supabase)
-**Target Platform**: Web (PWA via serwist)
-**Project Type**: Web application (Next.js App Router)
-**Performance Goals**: Balance updates within 2 seconds of End Day (SC-002); event-sourced trigger handles recalculation automatically
-**Constraints**: No API routes for data — Server Actions only; bun for all package/script commands; TypeScript strict mode throughout
-**Scale/Scope**: Family-scale (small number of kids and chores per family)
+**Language/Version**: TypeScript / Next.js 16.2.4 (App Router, Turbopack)
+**Primary Dependencies**: @base-ui/react 1.4.1, Supabase (PostgreSQL + RLS), @serwist/next
+**Storage**: Supabase PostgreSQL — `chores.reward_points`, `chore_completions.reward_snapshot`, `activity_log.action_type`
+**Testing**: Vitest (unit + integration), Playwright (E2E)
+**Target Platform**: Web — iOS/Android PWA via Serwist
+**Project Type**: Web application (Next.js full-stack)
+**Performance Goals**: Standard web app; no special latency targets
+**Constraints**: RLS enforced on all tables; `after_activity_log_insert` trigger auto-recalculates `kids.points`
+**Scale/Scope**: Family-scale (< 10 kids per family)
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Next.js Patterns (Server Actions, no API routes for data) | PASS | `endDay` and `undoEndDay` are Server Actions in `lib/actions/day-records.ts`; no new API routes introduced |
-| II. Supabase Patterns (RLS, typed client, Realtime) | PASS | All DB access via typed Supabase client; RLS already enforced on all tables; no Edge Functions introduced |
-| III. TanStack First | PASS | No new client state introduced; existing TanStack Query usage unmodified |
-| IV. shadcn Components First | PASS | `EffortDropdown` uses shadcn `Select` wrapper (which wraps `@base-ui/react/select`); no custom primitives introduced |
-| V. Test Coverage | PASS | Unit tests for `calculateChoreRewards`; integration tests for `endDay` / `undoEndDay`; E2E test for full reward flow |
+- Single project structure: PASS
+- Minimal dependencies: PASS — no new dependencies added
+- Server Actions pattern: PASS — consistent with existing codebase
+- RLS: PASS — parent_all_chores policy covers all chore mutations
 
 ## Project Structure
 
@@ -38,91 +32,62 @@ Adds configurable reward points to chores. Parents set a `reward_points` value o
 ```text
 specs/005-chore-reward-points/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-└── tasks.md             # Phase 2 output
+├── research.md          # Base UI, Supabase, Next.js patterns
+├── data-model.md        # Schema changes and type mappings
+├── quickstart.md        # Manual verification flows
+└── tasks.md             # Full task list (T001–T027)
 ```
 
 ### Source Code (repository root)
 
 ```text
-app/
-├── (admin)/admin/chores/page.tsx      # Reward Points field in Add Chore form
-├── (admin)/admin/effort/page.tsx      # Effort levels admin (pre-existing)
-
-components/
-├── chore-list/ChoreItem.tsx           # +N pts reward badge on chore tiles
-├── activity-log/ActivityLogTable.tsx  # chore_completion_reward[_reversed] labels
-├── effort-dropdown/EffortDropdown.tsx # Bug fix: UUID → label display
-├── end-day/EndDayButton.tsx           # Passes effortLevels to EffortDropdown
-└── ui/select.tsx                      # shadcn Select (wraps @base-ui/react/select)
-
-lib/
-├── types.ts                           # Chore.reward, ChoreCompletion.rewardSnapshot, new action types
-├── points.ts                          # calculateChoreRewards()
-├── database.types.ts                  # Generated types updated for new columns
-├── db/chores.ts                       # createChore/updateChore accept reward
-├── db/day-records.ts                  # getOrCreateDayRecord seeds reward_snapshot
-└── actions/
-    ├── chores.ts                      # createChoreAction/updateChoreAction read reward from formData
-    └── day-records.ts                 # endDay inserts chore_completion_reward; undoEndDay reverses
-
+app/(admin)/admin/chores/page.tsx    # Chore library UI — Add + Edit forms
+lib/actions/chores.ts                # Server Actions: createChoreAction, updateChoreAction
+lib/actions/day-records.ts           # endDay, undoEndDay — reward event insertion
+lib/db/chores.ts                     # createChore, updateChore — DB layer
+lib/db/day-records.ts                # getOrCreateDayRecord — reward_snapshot seeding
+lib/points.ts                        # calculateChoreRewards helper
+lib/types.ts                         # Chore, ChoreCompletion, ActivityLogEntry types
+lib/database.types.ts                # Supabase generated types
+components/chore-list/ChoreItem.tsx  # Kid dashboard chore tile — reward badge
+components/effort-dropdown/          # EffortDropdown — UUID display fix (T025)
+components/activity-log/             # ActivityLogTable — chore_completion_reward label
 supabase/migrations/
-├── 0011_chore_reward_points.sql       # reward_points on chores, reward_snapshot on chore_completions
-└── 0012_reward_reversal_event_type.sql # chore_completion_reward_reversed action type
-
-__tests__/
-├── unit/points.test.ts                # calculateChoreRewards unit tests
-├── integration/
-│   ├── chores.test.ts                 # reward_points persistence
-│   └── day-records.test.ts            # endDay rewards + undoEndDay reversal + phantom fix
-└── e2e/us11-chore-reward.spec.ts      # Full reward flow E2E + undo path
+├── 0011_chore_reward_points.sql     # reward_points + reward_snapshot columns
+└── 0012_reward_reversal_event_type.sql
 ```
 
-**Structure Decision**: Single Next.js application (monorepo root). No new directories — all changes extend existing `lib/`, `components/`, `app/`, and `supabase/migrations/` patterns.
+**Structure Decision**: Single Next.js project. No new directories. All changes are additive to existing files.
 
-## Complexity Tracking
+## Implementation Status
 
-No constitution violations. All changes follow established patterns (snapshot columns, Server Actions, event-sourced balance, shadcn components).
+### Completed Tasks (T001–T026)
 
----
+All core feature tasks are complete:
 
-## Phase 0: Research
+- **T001–T003**: Migration and type layer
+- **T004–T007**: US1 — Configure reward points on chore (parent library UI)
+- **T008–T013**: US2 — Earn reward points at End Day
+- **T014**: US3 — Activity log display
+- **T015**: E2E coverage
+- **T016–T024**: US4 — Undo End Day reversal + phantom points fix (FR-013)
+- **T025**: EffortDropdown UUID display bug fix (FR-014)
+- **T026**: Penalty badge zero-value display fix
 
-See [research.md](./research.md) for full decisions. Key decisions:
+### Bug Fix Under Investigation: Edit Form Reward Update (FR-015)
 
-| Decision | Choice |
-|----------|--------|
-| When rewards granted | End Day only (mirrors penalty timing) |
-| Granularity | One `chore_completion_reward` event per completed chore with reward > 0 |
-| Snapshot strategy | `reward_snapshot` on `chore_completions`, captured at day-record creation |
-| Balance update | Existing `after_activity_log_insert` trigger handles it — no manual update needed |
-| Undo strategy | One `chore_completion_reward_reversed` per original reward event; only reverse events that actually exist (FR-013) |
-| EffortDropdown display bug | Base UI `Select.Value` in controlled mode cannot resolve UUID → label from items that haven't been rendered in an active popup; fix by deriving display label from `effortLevels` prop directly in `EffortDropdown` |
+**Symptom**: Editing a chore's Reward Points via the edit form and clicking Save does not persist the new value — the badge does not appear after page refresh.
 
----
+**Code investigation findings**:
 
-## Phase 1: Design & Contracts
+- `updateChoreAction` (`lib/actions/chores.ts:56`): correctly reads `reward = Number(formData.get('reward') ?? 0)` and passes `reward_points: reward` to `updateChore`
+- `updateChore` (`lib/db/chores.ts:42`): correctly sends `reward_points` in the Supabase `.update()` call; `if (error) throw error` ensures failures propagate
+- `<Input name="reward">` (`app/(admin)/admin/chores/page.tsx:141`): verified that `@base-ui/react/input` (wraps `Field.Control`) correctly forwards `name` prop to the native `<input>` — `name = fieldName ?? nameProp` where `fieldName` is `undefined` (no `Field.Root` parent), so `nameProp = "reward"` is used
+- RLS policy `parent_all_chores`: `FOR ALL` — parent can update any chore in their family
+- Type definitions in `lib/database.types.ts`: `reward_points` present in `Update` type
 
-See [data-model.md](./data-model.md) for entity definitions, migration SQL, and state transition diagrams.
+**Root cause**: Two-layer problem:
+1. **Environment**: The `supabase_db_kids-goals` container is not running locally. If the migration (`0011_chore_reward_points.sql`) has not been applied to the connected database (local or remote), Supabase returns a DB error (`column "reward_points" does not exist`). The Server Action throws, but in some Turbopack + Next.js 16.x configurations the error is swallowed at the client level — the form appears to submit without visible feedback.
+2. **UX gap**: The edit form has no inline error/success feedback. When the server action fails, users see the form reset with no indication of failure. The only visible indicator of success is the `+N pts` badge appearing in the chore list — absence of the badge signals failure but without explanation.
 
-### EffortDropdown Bug Fix (FR-014)
-
-**Root cause**: `components/ui/select.tsx` wraps `@base-ui/react/select` (Base UI), not Radix UI. Base UI's `Select.Value` displays the selected item's label by reading from an internal context that is populated when the user interacts with the popup. In controlled mode, when `value` is set externally to a UUID string (e.g., from `useState`), Base UI has no popup-rendered items to read the label from, so it falls back to rendering the raw `value` string — the UUID.
-
-**Fix**: In `EffortDropdown`, look up the selected `EffortLevel` from the `effortLevels` prop using the current `value` UUID, and render the label string directly inside `SelectValue` as children. This bypasses Base UI's internal label-resolution mechanism entirely:
-
-```tsx
-const selectedLevel = effortLevels.find((l) => l.id === value) ?? null
-
-<SelectTrigger className="w-full">
-  <SelectValue placeholder="Select effort level...">
-    {selectedLevel ? `${selectedLevel.name} (+${selectedLevel.points} pts)` : undefined}
-  </SelectValue>
-</SelectTrigger>
-```
-
-**No schema changes required** — this is a purely presentational fix in `EffortDropdown.tsx`.
-
-**Affected file**: `components/effort-dropdown/EffortDropdown.tsx`
+**Fix (T027)**: Add inline form feedback by converting the edit chore section to use `useActionState` for error visibility, and add `console.error` to `updateChoreAction` for server-side diagnostics.

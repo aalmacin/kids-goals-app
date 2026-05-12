@@ -48,6 +48,14 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 3. **Parent**: Undo End Day → balance returns to exactly the pre-End-Day value (net change: −15)
 4. **Repeat step 2–3** several times → balance must not drift upward (confirms no phantom reversal events are being created)
 
+### Zero-value badge fix (chores page)
+
+1. Go to `/admin/chores`
+2. Any chore with `Penalty Points = 0` must show **no penalty badge** (no `-0 pts`)
+3. Any chore with `Reward Points = 0` must show **no reward badge**
+4. A chore with `penalty = 3, reward = 0` shows only `-3 pts`
+5. A chore with `penalty = 0, reward = 10` shows only `+10 pts`
+
 ### Effort dropdown display bug fix (FR-014)
 
 1. Open the End Day dialog (kid must have all chores done for the effort dropdown to appear)
@@ -55,17 +63,29 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 3. The trigger must display the label text — **not** a UUID string
 4. Confirm End Day — effort points are applied correctly
 
+### Edit form reward points fix (FR-015)
+
+1. Go to `/admin/chores`
+2. Open the Edit section on any chore
+3. Change Reward Points from 0 to 10 and click Save
+4. On success: the page refreshes and a `+10 pts` badge appears on the chore
+5. On failure: an inline error message appears below the Save button — never a silent no-op
+6. If a DB error occurs (e.g., migration not applied), check server logs for `[updateChoreAction]` error messages and run `bun run db:reset` to apply all migrations
+
 ## Key Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/migrations/0007_chore_reward_points.sql` | Schema: `reward_points` on chores, `reward_snapshot` on chore_completions, updated constraint |
+| `supabase/migrations/0011_chore_reward_points.sql` | Schema: `reward_points` on chores, `reward_snapshot` on chore_completions, updated constraint |
+| `supabase/migrations/0012_reward_reversal_event_type.sql` | Schema: adds `chore_completion_reward_reversed` action type |
 | `lib/types.ts` | `Chore.reward`, `ChoreCompletion.rewardSnapshot`, `chore_completion_reward` action type |
 | `lib/points.ts` | `calculateChoreRewards(completions)` helper |
 | `lib/db/chores.ts` | `createChore` / `updateChore` accept `reward` |
 | `lib/db/day-records.ts` | Seed `reward_snapshot` when creating completions |
-| `lib/actions/chores.ts` | Read `reward` from formData |
-| `lib/actions/day-records.ts` | `endDay` inserts `chore_completion_reward` per completed rewarded chore |
+| `lib/actions/chores.ts` | `updateChoreAction` returns `{ error }` for `useActionState`; try/catch with server logging |
+| `lib/actions/day-records.ts` | `endDay` inserts `chore_completion_reward` per completed rewarded chore; `undoEndDay` reversal fix |
+| `components/chore-list/ChoreEditForm.tsx` | New client component using `useActionState` for inline error feedback |
 | `components/chore-list/ChoreItem.tsx` | Show `+N pts` reward badge on both completed and uncompleted tiles |
-| `components/activity-log/ActivityLogTable.tsx` | Label for `chore_completion_reward` event type |
-| `app/(admin)/admin/chores/page.tsx` | Reward Points input in Add Chore form and chore list display |
+| `components/effort-dropdown/EffortDropdown.tsx` | Fix UUID display in Base UI Select controlled mode |
+| `components/activity-log/ActivityLogTable.tsx` | Labels for `chore_completion_reward` and `chore_completion_reward_reversed` event types |
+| `app/(admin)/admin/chores/page.tsx` | Reward Points input in Add Chore form; uses `ChoreEditForm` for edit section |
