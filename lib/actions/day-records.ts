@@ -328,7 +328,7 @@ export async function undoEndDay(dayRecordId: string) {
         kid_id: kid.id,
         actor_type: 'kid' as const,
         action_type: 'chore_completion_reward_reversed' as const,
-        metadata: { chore_name: meta.chore_name, original_event_id: entry.id },
+        metadata: { chore_name: meta.chore_name as string, original_event_id: entry.id },
         points_delta: -(entry.points_delta!),
       })
     }
