@@ -90,4 +90,7 @@ All core feature tasks are complete:
 1. **Environment**: The `supabase_db_kids-goals` container is not running locally. If the migration (`0011_chore_reward_points.sql`) has not been applied to the connected database (local or remote), Supabase returns a DB error (`column "reward_points" does not exist`). The Server Action throws, but in some Turbopack + Next.js 16.x configurations the error is swallowed at the client level — the form appears to submit without visible feedback.
 2. **UX gap**: The edit form has no inline error/success feedback. When the server action fails, users see the form reset with no indication of failure. The only visible indicator of success is the `+N pts` badge appearing in the chore list — absence of the badge signals failure but without explanation.
 
-**Fix (T027)**: Add inline form feedback by converting the edit chore section to use `useActionState` for error visibility, and add `console.error` to `updateChoreAction` for server-side diagnostics.
+**Fix (T027)**:
+- `updateChoreAction` now returns `{ error: string | null; savedAt: number }` with try/catch and `console.error` logging
+- `ChoreEditForm` client component owns the `<details>` wrapper and uses `useActionState`; on success it closes the panel via `detailsRef.current.open = false` and calls `router.refresh()` to re-fetch server component data (required because `revalidatePath` alone does not trigger an immediate re-render when called from a `useActionState` action)
+- `ChoreScheduleEditor` button renamed to "Save Schedule"; edit form button is "Save Changes"

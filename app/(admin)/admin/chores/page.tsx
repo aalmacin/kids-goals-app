@@ -6,7 +6,6 @@ import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreA
 import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
 import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
 import { ChoreEditForm } from '@/components/chore-list/ChoreEditForm'
-import { Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -123,12 +122,7 @@ export default async function ChoresPage() {
               />
 
               {/* Edit Chore */}
-              <details className="mt-3">
-                <summary className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer hover:text-indigo-600 w-fit">
-                  <Pencil className="w-3 h-3" /> Edit
-                </summary>
-                <ChoreEditForm choreId={chore.id} chore={chore} />
-              </details>
+              <ChoreEditForm choreId={chore.id} chore={chore} />
 
               {/* Kid Assignments */}
               {kids.length > 0 && (

@@ -168,9 +168,9 @@
 
 **Independent Test**: Edit a chore's reward points, save, and see either a success confirmation OR a visible error message — never a silent no-op.
 
-- [x] T027 Fix `app/(admin)/admin/chores/page.tsx` and `lib/actions/chores.ts` — extract the edit chore form into a client component (`ChoreEditForm`) that uses `useActionState` with `updateChoreAction` returning `{ error: string | null }` so save failures display an inline error message below the form
+- [x] T027 Fix `app/(admin)/admin/chores/page.tsx` and `lib/actions/chores.ts` — extract the edit chore form into a client component (`ChoreEditForm`) that owns the `<details>` wrapper, uses `useActionState` with `updateChoreAction` returning `{ error: string | null; savedAt: number }`, calls `router.refresh()` on success to re-fetch server component data, and sets `detailsRef.current.open = false` to close the panel after save; rename `ChoreScheduleEditor` button to "Save Schedule"
 
-**Checkpoint**: Editing reward points shows the new badge value on success, or an inline error message on failure — no silent no-ops.
+**Checkpoint**: Editing reward points closes the edit panel and shows the updated badge on success; shows inline error on failure; "Save Schedule" and "Save Changes" buttons are clearly distinct.
 
 ---
 

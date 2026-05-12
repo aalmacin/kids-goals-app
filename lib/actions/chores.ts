@@ -55,9 +55,9 @@ export async function createChoreAction(formData: FormData) {
 
 export async function updateChoreAction(
   choreId: string,
-  _prevState: { error: string | null },
+  _prevState: { error: string | null; savedAt: number },
   formData: FormData
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; savedAt: number }> {
   const name = (formData.get('name') as string).trim()
   const penalty = Number(formData.get('penalty') ?? 0)
   const reward = Number(formData.get('reward') ?? 0)
@@ -79,11 +79,11 @@ export async function updateChoreAction(
     })
   } catch (err) {
     console.error('[updateChoreAction] Failed to update chore:', choreId, err)
-    return { error: 'Failed to save chore. Please try again.' }
+    return { error: 'Failed to save chore. Please try again.', savedAt: 0 }
   }
 
   revalidatePath('/admin/chores')
-  return { error: null }
+  return { error: null, savedAt: Date.now() }
 }
 
 export async function updateChoreScheduleAction(

@@ -66,11 +66,12 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 ### Edit form reward points fix (FR-015)
 
 1. Go to `/admin/chores`
-2. Open the Edit section on any chore
-3. Change Reward Points from 0 to 10 and click Save
-4. On success: the page refreshes and a `+10 pts` badge appears on the chore
-5. On failure: an inline error message appears below the Save button — never a silent no-op
+2. Click **Edit** on any chore to open the edit panel
+3. Change Reward Points from 0 to 10 and click **Save Changes**
+4. On success: the edit panel closes automatically and a `+10 pts` badge appears on the chore
+5. On failure: an inline red error message appears below the Save Changes button — never a silent no-op
 6. If a DB error occurs (e.g., migration not applied), check server logs for `[updateChoreAction]` error messages and run `bun run db:reset` to apply all migrations
+7. Verify the **Save Schedule** button (day picker) and **Save Changes** button (edit form) are clearly labelled and distinct
 
 ## Key Files Changed
 
@@ -82,9 +83,10 @@ bun playwright test __tests__/e2e/us11-chore-reward.spec.ts
 | `lib/points.ts` | `calculateChoreRewards(completions)` helper |
 | `lib/db/chores.ts` | `createChore` / `updateChore` accept `reward` |
 | `lib/db/day-records.ts` | Seed `reward_snapshot` when creating completions |
-| `lib/actions/chores.ts` | `updateChoreAction` returns `{ error }` for `useActionState`; try/catch with server logging |
+| `lib/actions/chores.ts` | `updateChoreAction` returns `{ error, savedAt }` for `useActionState`; try/catch with server logging |
 | `lib/actions/day-records.ts` | `endDay` inserts `chore_completion_reward` per completed rewarded chore; `undoEndDay` reversal fix |
-| `components/chore-list/ChoreEditForm.tsx` | New client component using `useActionState` for inline error feedback |
+| `components/chore-list/ChoreEditForm.tsx` | New client component owning `<details>` wrapper; closes panel on success via `detailsRef`; calls `router.refresh()` |
+| `components/chore-list/ChoreScheduleEditor.tsx` | Button renamed to "Save Schedule" |
 | `components/chore-list/ChoreItem.tsx` | Show `+N pts` reward badge on both completed and uncompleted tiles |
 | `components/effort-dropdown/EffortDropdown.tsx` | Fix UUID display in Base UI Select controlled mode |
 | `components/activity-log/ActivityLogTable.tsx` | Labels for `chore_completion_reward` and `chore_completion_reward_reversed` event types |
