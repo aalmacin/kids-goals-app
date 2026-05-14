@@ -62,6 +62,13 @@ export function AdminMobileMenu({ familyExists }: AdminMobileMenuProps) {
               >
                 Rewards
               </Link>
+              <Link
+                href="/admin/tasks"
+                className="text-lg hover:text-indigo-600"
+                onClick={() => setOpen(false)}
+              >
+                Tasks
+              </Link>
             </>
           )}
           <form action={logout} className="mt-2">

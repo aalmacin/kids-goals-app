@@ -7,13 +7,15 @@
 
 ## 1. Apply Database Migration
 
-Create a new migration file:
+Migration file: `supabase/migrations/0007_tasks.sql`
+
+Apply it:
 
 ```bash
-supabase migration new add_tasks
+supabase db push
 ```
 
-The migration must:
+The migration:
 
 1. Create `tasks` table with `task_type` CHECK and `max_completions` constraint
 2. Create `task_completions` table with partial unique index for one-time tasks

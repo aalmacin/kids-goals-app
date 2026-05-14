@@ -285,6 +285,7 @@ export type Database = {
             | 'penalty_reversed'
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
+            | 'task_completed'
           metadata: Json
           points_delta: number | null
           created_at: string
@@ -310,6 +311,7 @@ export type Database = {
             | 'penalty_reversed'
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
+            | 'task_completed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -335,9 +337,70 @@ export type Database = {
             | 'penalty_reversed'
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
+            | 'task_completed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
+        }
+        Relationships: NoRelationships
+      }
+      tasks: {
+        Row: {
+          id: string
+          family_id: string
+          name: string
+          points: number
+          task_type: 'one_time' | 'repeated'
+          max_completions: number | null
+          deleted_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          family_id: string
+          name: string
+          points: number
+          task_type: 'one_time' | 'repeated'
+          max_completions?: number | null
+          deleted_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          family_id?: string
+          name?: string
+          points?: number
+          task_type?: 'one_time' | 'repeated'
+          max_completions?: number | null
+          deleted_at?: string | null
+          created_at?: string
+        }
+        Relationships: NoRelationships
+      }
+      task_completions: {
+        Row: {
+          id: string
+          task_id: string
+          kid_id: string
+          task_name_snapshot: string
+          points_snapshot: number
+          completed_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          kid_id: string
+          task_name_snapshot: string
+          points_snapshot: number
+          completed_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          kid_id?: string
+          task_name_snapshot?: string
+          points_snapshot?: number
+          completed_at?: string
         }
         Relationships: NoRelationships
       }

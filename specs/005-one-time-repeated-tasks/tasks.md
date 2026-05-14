@@ -16,9 +16,9 @@
 
 **Purpose**: Database migration and TypeScript type foundations needed by all phases.
 
-- [ ] T001 Create `supabase/migrations/0007_tasks.sql` — tasks + task_completions tables, partial unique index for one-time completions, RLS policies (parent ALL, kid SELECT on tasks; kid SELECT+INSERT on task_completions), and add `'task_completed'` to activity_log action_type CHECK constraint
-- [ ] T002 [P] Update `lib/types.ts` — add `Task` and `TaskCompletion` types; add `'task_completed'` to `ActivityLogEntry.actionType` union
-- [ ] T003 [P] Update `lib/database.types.ts` — add `tasks` and `task_completions` table definitions; add `'task_completed'` to activity_log action_type union
+- [x] T001 Create `supabase/migrations/0007_tasks.sql` — tasks + task_completions tables, partial unique index for one-time completions, RLS policies (parent ALL, kid SELECT on tasks; kid SELECT+INSERT on task_completions), and add `'task_completed'` to activity_log action_type CHECK constraint
+- [x] T002 [P] Update `lib/types.ts` — add `Task` and `TaskCompletion` types; add `'task_completed'` to `ActivityLogEntry.actionType` union
+- [x] T003 [P] Update `lib/database.types.ts` — add `tasks` and `task_completions` table definitions; add `'task_completed'` to activity_log action_type union
 
 ---
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: No user story UI work can begin until this phase is complete.
 
-- [ ] T004 Create `lib/db/tasks.ts` — implement `getTaskLibrary(familyId)`, `getAvailableTasksForKid(kidId, familyId)` (filters out completed one-time tasks and capped repeated tasks server-side), `createTask(...)`, `softDeleteTask(taskId)`, `getTaskCompletionCount(taskId, kidId)`
-- [ ] T005 Create `lib/actions/tasks.ts` (`'use server'`) — implement `createTaskAction(formData)` (parent), `deleteTaskAction(taskId)` (parent), `completeTaskAction(taskId)` (kid: validates availability, inserts task_completion, inserts activity_log entry with `action_type: 'task_completed'` and `points_delta`, calls `revalidatePath('/')`)
+- [x] T004 Create `lib/db/tasks.ts` — implement `getTaskLibrary(familyId)`, `getAvailableTasksForKid(kidId, familyId)` (filters out completed one-time tasks and capped repeated tasks server-side), `createTask(...)`, `softDeleteTask(taskId)`, `getTaskCompletionCount(taskId, kidId)`
+- [x] T005 Create `lib/actions/tasks.ts` (`'use server'`) — implement `createTaskAction(formData)` (parent), `deleteTaskAction(taskId)` (parent), `completeTaskAction(taskId)` (kid: validates availability, inserts task_completion, inserts activity_log entry with `action_type: 'task_completed'` and `points_delta`, calls `revalidatePath('/')`)
 
 **Checkpoint**: Foundation ready — all user story UI work can now begin.
 
@@ -41,11 +41,11 @@
 
 **Independent Test**: Seed a one-time task for the family, log in as a kid, complete it with confirmation — points awarded, task no longer listed, completion appears in activity log.
 
-- [ ] T006 [P] [US1] Create `components/task-list/TaskItem.tsx` — client component using `useTransition`; for `task_type === 'one_time'` wraps completion in shadcn `AlertDialog` (confirm/cancel); for `repeated` type calls `completeTaskAction` directly; shows task name, points badge, pending state
-- [ ] T007 [P] [US1] Create `components/task-list/TaskList.tsx` — renders list of `TaskItem` components; shows empty state when no tasks available
-- [ ] T008 [US1] Update `app/(dashboard)/page.tsx` — call `getAvailableTasksForKid` server-side and render `<TaskList>` below the chore list section
-- [ ] T009 [P] [US1] Write E2E test `__tests__/e2e/one-time-task.spec.ts` — happy path (confirm completion, points awarded, task gone) and failure path (cancel dialog, task remains)
-- [ ] T010 [P] [US1] Write unit test `__tests__/unit/task-completion-guard.test.ts` — test that `completeTaskAction` rejects a second completion of a one-time task
+- [x] T006 [P] [US1] Create `components/task-list/TaskItem.tsx` — client component using `useTransition`; for `task_type === 'one_time'` wraps completion in shadcn `AlertDialog` (confirm/cancel); for `repeated` type calls `completeTaskAction` directly; shows task name, points badge, pending state
+- [x] T007 [P] [US1] Create `components/task-list/TaskList.tsx` — renders list of `TaskItem` components; shows empty state when no tasks available
+- [x] T008 [US1] Update `app/(dashboard)/page.tsx` — call `getAvailableTasksForKid` server-side and render `<TaskList>` below the chore list section
+- [x] T009 [P] [US1] Write E2E test `__tests__/e2e/one-time-task.spec.ts` — happy path (confirm completion, points awarded, task gone) and failure path (cancel dialog, task remains)
+- [x] T010 [P] [US1] Write unit test `__tests__/unit/task-completion-guard.test.ts` — test that `completeTaskAction` rejects a second completion of a one-time task
 
 **Checkpoint**: User Story 1 fully functional — one-time task completion works end-to-end.
 
@@ -57,8 +57,8 @@
 
 **Independent Test**: Seed a repeated task (one with no limit, one with limit 2), log in as a kid, complete multiple times — points awarded each time, unlimited task always present, capped task disappears after 2 completions.
 
-- [ ] T011 [US2] Update `components/task-list/TaskItem.tsx` — add visual indicator for capped repeated tasks showing remaining completions (e.g. `2 left` badge); no confirmation dialog for repeated type
-- [ ] T012 [P] [US2] Write E2E test `__tests__/e2e/repeated-task.spec.ts` — happy path (multiple completions, points each time, task stays visible) and limit path (task disappears after hitting max_completions)
+- [x] T011 [US2] Update `components/task-list/TaskItem.tsx` — add visual indicator for capped repeated tasks showing remaining completions (e.g. `2 left` badge); no confirmation dialog for repeated type
+- [x] T012 [P] [US2] Write E2E test `__tests__/e2e/repeated-task.spec.ts` — happy path (multiple completions, points each time, task stays visible) and limit path (task disappears after hitting max_completions)
 
 **Checkpoint**: User Story 2 complete — repeated task completion works with and without limits.
 
@@ -70,9 +70,9 @@
 
 **Independent Test**: Log in as parent, click "Tasks" in admin nav, create a one-time task and a repeated task with a limit — both appear on the kid's dashboard.
 
-- [ ] T013 [US3] Update `app/(admin)/admin/layout.tsx` — add `<Link href="/admin/tasks">Tasks</Link>` to the admin navbar alongside existing links
-- [ ] T014 [P] [US3] Create `app/(admin)/admin/tasks/page.tsx` — task CRUD page with: add-task form (name, points, task type selector, conditional max_completions field for repeated type), task list with soft-delete button; mirrors chores page pattern using shadcn Card, Input, Label, Button, Select, Badge
-- [ ] T015 [P] [US3] Write E2E test `__tests__/e2e/admin-tasks.spec.ts` — happy path (create one-time task, verify appears for kid) and error path (attempt to save repeated task with max_completions = 0, verify rejected)
+- [x] T013 [US3] Update `app/(admin)/admin/layout.tsx` — add `<Link href="/admin/tasks">Tasks</Link>` to the admin navbar alongside existing links
+- [x] T014 [P] [US3] Create `app/(admin)/admin/tasks/page.tsx` — task CRUD page with: add-task form (name, points, task type selector, conditional max_completions field for repeated type), task list with soft-delete button; mirrors chores page pattern using shadcn Card, Input, Label, Button, Select, Badge
+- [x] T015 [P] [US3] Write E2E test `__tests__/e2e/admin-tasks.spec.ts` — happy path (create one-time task, verify appears for kid) and error path (attempt to save repeated task with max_completions = 0, verify rejected)
 
 **Checkpoint**: All three user stories functional.
 
@@ -80,8 +80,8 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T016 [P] Write integration test `__tests__/integration/tasks.test.ts` — RLS policy tests (kid cannot see other family's tasks, parent cannot complete as kid), server action contract tests for `completeTaskAction` and `createTaskAction`
-- [ ] T017 Verify `quickstart.md` matches final implementation (correct migration name, step count, accurate file paths); update if needed
+- [x] T016 [P] Write integration test `__tests__/integration/tasks.test.ts` — RLS policy tests (kid cannot see other family's tasks, parent cannot complete as kid), server action contract tests for `completeTaskAction` and `createTaskAction`
+- [x] T017 Verify `quickstart.md` matches final implementation (correct migration name, step count, accurate file paths); update if needed
 
 ---
 
