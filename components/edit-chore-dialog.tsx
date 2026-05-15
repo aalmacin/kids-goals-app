@@ -23,7 +23,7 @@ export function EditChoreDialog({ chore }: EditChoreDialogProps) {
   const [open, setOpen] = useState(false)
 
   async function handleSubmit(formData: FormData) {
-    await updateChoreAction(chore.id, formData)
+    await updateChoreAction(chore.id, { error: null, savedAt: 0 }, formData)
     setOpen(false)
   }
 

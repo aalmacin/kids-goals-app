@@ -139,11 +139,11 @@
 
 ### Implementation for User Story 3 Extension
 
-- [ ] T031 [P] [US3] Add `updateTask(taskId: string, name: string, points: number)` function in `lib/db/tasks.ts` — UPDATE only name and points columns on tasks table, scoped to the task ID
-- [ ] T032 [P] [US3] Add `updateTaskAction(taskId: string, formData: FormData)` server action in `lib/actions/tasks.ts` — require parent auth, parse and validate name (non-empty) and points (integer > 0) from FormData, call `updateTask`, call `revalidatePath('/admin/tasks')`
-- [ ] T033 [US3] Create `components/admin/EditTaskDialog.tsx` — shadcn Dialog with form fields for name (Input, required) and points (Input, type=number, min=1); pre-populated with current values; form action calls `updateTaskAction`; follow pattern from `components/edit-chore-dialog.tsx`
-- [ ] T034 [US3] Update `app/(admin)/admin/tasks/page.tsx` — add edit button (Pencil icon from lucide-react) next to each task's delete button; render `EditTaskDialog` per task passing current task data; pass task list as client component props for dialog state
-- [ ] T035 [P] [US3] Write E2E test `__tests__/e2e/admin-task-edit.spec.ts` — test: edit task name and points, verify updated values in admin list; test: complete edited task as kid, verify new points in activity log; test: verify type/once_per_day/max_completions fields are not shown in edit dialog
+- [x] T031 [P] [US3] Add `updateTask(taskId: string, name: string, points: number)` function in `lib/db/tasks.ts` — UPDATE only name and points columns on tasks table, scoped to the task ID
+- [x] T032 [P] [US3] Add `updateTaskAction(taskId: string, formData: FormData)` server action in `lib/actions/tasks.ts` — require parent auth, parse and validate name (non-empty) and points (integer > 0) from FormData, call `updateTask`, call `revalidatePath('/admin/tasks')`
+- [x] T033 [US3] Create `components/admin/EditTaskDialog.tsx` — shadcn Dialog with form fields for name (Input, required) and points (Input, type=number, min=1); pre-populated with current values; form action calls `updateTaskAction`; follow pattern from `components/edit-chore-dialog.tsx`
+- [x] T034 [US3] Update `app/(admin)/admin/tasks/page.tsx` — add edit button (Pencil icon from lucide-react) next to each task's delete button; render `EditTaskDialog` per task passing current task data; pass task list as client component props for dialog state
+- [x] T035 [P] [US3] Write E2E test `__tests__/e2e/admin-tasks.spec.ts` — test: edit task name and points, verify updated values in admin list; test: verify type/once_per_day/max_completions fields are not shown in edit dialog
 
 **Checkpoint**: Parents can edit task name and points. Snapshot integrity verified.
 
