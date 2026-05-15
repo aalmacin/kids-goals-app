@@ -50,10 +50,12 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 
 **Acceptance Scenarios**:
 
-1. **Given** a day has been ended and undo is available, **When** viewing the dashboard, **Then** an "Undo End Day" button is visible
+1. **Given** a day has been ended and undo is available, **When** viewing the dashboard, **Then** an "Undo End Day" button is visible (large, prominent, kid-friendly)
 2. **Given** a day has been ended and undo is exhausted, **When** viewing the dashboard, **Then** only "Day Ended" status is shown (no undo button)
 3. **Given** a chore has been completed and can still be unchecked, **When** viewing the chore, **Then** the checkbox is interactive
 4. **Given** a chore's undo has been exhausted, **When** viewing the completed chore, **Then** the checkbox appears visually locked
+5. **Given** a kid clicks "Undo End Day", **When** the confirmation dialog appears, **Then** it clearly explains that penalties and effort rewards will be reversed
+6. **Given** a rest day has been purchased and undo is available, **When** viewing the dashboard, **Then** an "Undo Rest Day" button is visible (large, prominent, kid-friendly)
 
 ---
 
@@ -63,6 +65,7 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 - What happens if penalties were applied during end-day and then end-day is undone? The penalty and effort reward activity log entries from that end-day are reversed (negative entries inserted to cancel them out).
 - What happens if a chore is unchecked on a day that hasn't been ended? The uncheck count increments normally. The one-undo limit applies regardless of end-day state.
 - What happens if the app is used offline and syncs later? Standard Supabase sync behavior applies; undo counts are tracked server-side.
+- What happens if a kid purchased a rest day and then ended the day, then undoes end-day? The rest day purchase is NOT reversed by undo end-day. Rest day is a separate action with its own independent undo (once per day).
 
 ## Requirements *(mandatory)*
 
@@ -70,7 +73,7 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 
 - **FR-001**: System MUST allow undoing "End Day" exactly once per day record
 - **FR-002**: System MUST track the number of times end-day has been undone per day record (0 or 1)
-- **FR-003**: When end-day is undone, system MUST clear the `ended_at` timestamp, reverse penalty activity log entries, and reverse effort reward activity log entries from that end-day
+- **FR-003**: When end-day is undone, system MUST clear the `ended_at` timestamp, clear the effort level selection, reverse penalty activity log entries, and reverse effort reward activity log entries (points returned) from that end-day. Rest day status is NOT affected. When the kid re-ends the day, they select effort level fresh.
 - **FR-004**: System MUST allow unchecking a completed chore exactly once per chore completion per day
 - **FR-005**: System MUST track whether a chore completion has been unchecked before (per day record)
 - **FR-006**: After a chore has been unchecked once and re-completed, the checkbox MUST be locked in the completed state
@@ -78,10 +81,14 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 - **FR-008**: The "Undo End Day" button MUST only appear when the day is ended AND undo has not been used
 - **FR-009**: All undo/reversal operations MUST create activity log entries for audit purposes
 - **FR-010**: Points recalculation MUST happen automatically via the existing event-sourcing trigger when reversal activity log entries are inserted
+- **FR-011**: System MUST allow undoing a rest day purchase exactly once per day record, independently from undo end-day
+- **FR-012**: When rest day is undone, system MUST clear the `is_rest_day` flag and reverse the 100-point deduction via a reversal activity log entry
+- **FR-013**: "Undo End Day" MUST show a confirmation dialog before executing, consistent with how "End Day" works
+- **FR-014**: All action buttons (End Day, Undo End Day, Undo Rest Day) MUST be large and prominent for kid-friendly usability
 
 ### Key Entities
 
-- **DayRecord**: Extended with an `undo_end_count` field (integer, default 0) to track how many times end-day has been undone
+- **DayRecord**: Extended with an `undo_end_count` field (integer, default 0) to track how many times end-day has been undone. Extended with an `undo_rest_day_count` field (integer, default 0) to track how many times rest day has been undone.
 - **ChoreCompletion**: Extended with an `uncheck_count` field (integer, default 0) to track how many times the chore has been unchecked
 
 ## Success Criteria *(mandatory)*
@@ -94,6 +101,14 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 - **SC-004**: Points are correctly adjusted when end-day is undone (penalties reversed, effort rewards reversed)
 - **SC-005**: All reversal operations are fully auditable via the activity log
 - **SC-006**: Undo behavior is consistent: one reversal allowed, same rule for both chore unchecking and end-day undoing
+
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: When a kid undoes end-day on a rest day, is the rest day purchase also reversed? → A: No. Rest day is a separate undoable action with its own independent one-undo limit.
+- Q: When end-day is undone, what happens to the effort level selection and effort reward points? → A: Effort level selection is cleared and effort reward points are reversed. Kid picks effort level fresh when re-ending.
+- Q: Should "Undo End Day" require a confirmation dialog? → A: Yes, with a confirmation dialog consistent with "End Day". All action buttons must be large and prominent for kids.
 
 ## Assumptions
 
