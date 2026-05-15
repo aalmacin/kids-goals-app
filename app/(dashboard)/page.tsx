@@ -4,7 +4,7 @@ import { getOrCreateDayRecord } from '@/lib/db/day-records'
 import { getAvailableTasksForKid } from '@/lib/db/tasks'
 import { ChoreList } from '@/components/chore-list/ChoreList'
 import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
-import { TaskList } from '@/components/task-list/TaskList'
+import { TaskSection } from '@/components/task-list/TaskSection'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
 import { UndoEndDayButton } from '@/components/end-day/UndoEndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
@@ -163,12 +163,7 @@ export default async function DashboardPage({
       <UnavailableChoreSection chores={unavailableChores} />
 
       {/* Tasks */}
-      {availableTasks.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold text-gray-700">Tasks</h2>
-          <TaskList tasks={availableTasks} />
-        </div>
-      )}
+      <TaskSection tasks={availableTasks} />
 
       {/* Actions (only if not ended) */}
       {!isEnded && (
