@@ -32,3 +32,4 @@
 ## Notes
 
 - All items pass. Spec is ready for planning.
+- Clarified: "task" and "chore" are separate entities; this spec covers tasks only.
