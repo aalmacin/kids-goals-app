@@ -19,9 +19,9 @@
 
 **Purpose**: Database migration and type updates
 
-- [ ] T001 Create migration `supabase/migrations/0015_undo_counts.sql` — add `undo_end_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) and `undo_rest_day_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) to `day_records`; add `uncheck_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) to `chore_completions`; update `activity_log_action_type_check` constraint to include `rest_day_reversed`
-- [ ] T002 Regenerate `lib/database.types.ts` from local Supabase schema (`bunx supabase gen types typescript --local`)
-- [ ] T003 Update `lib/types.ts` — add `undoEndCount: number` and `undoRestDayCount: number` to `DayRecord` type; add `uncheckCount: number` to `ChoreCompletion` type; add `'day_undone' | 'penalty_reversed' | 'effort_reversed' | 'rest_day_reversed'` to `ActivityLogEntry.actionType` union
+- [x] T001 Create migration `supabase/migrations/0015_undo_counts.sql` — add `undo_end_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) and `undo_rest_day_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) to `day_records`; add `uncheck_count` (integer NOT NULL DEFAULT 0, CHECK >= 0) to `chore_completions`; update `activity_log_action_type_check` constraint to include `rest_day_reversed`
+- [x] T002 Regenerate `lib/database.types.ts` from local Supabase schema (`bunx supabase gen types typescript --local`)
+- [x] T003 Update `lib/types.ts` — add `undoEndCount: number` and `undoRestDayCount: number` to `DayRecord` type; add `uncheckCount: number` to `ChoreCompletion` type; add `'day_undone' | 'penalty_reversed' | 'effort_reversed' | 'rest_day_reversed'` to `ActivityLogEntry.actionType` union
 
 **Checkpoint**: Schema updated, types regenerated
 
@@ -31,9 +31,9 @@
 
 **Purpose**: DB helper functions and undo eligibility logic shared by all stories
 
-- [ ] T004 [P] Add undo eligibility pure functions in `lib/undo-eligibility.ts` — `canUndoEndDay(dayRecord, today)`, `canUndoRestDay(dayRecord, today)`, `canUncheckChore(completion, isEnded)` returning boolean based on data-model eligibility rules
-- [ ] T005 [P] Update `lib/db/day-records.ts` — map `undo_end_count`, `undo_rest_day_count` in `getOrCreateDayRecord` return; map `uncheck_count` in chore completion queries
-- [ ] T006 [P] Write unit tests in `__tests__/unit/undo-eligibility.test.ts` for all three eligibility functions covering: eligible, exhausted, wrong date, day not ended (for undo end day)
+- [x] T004 [P] Add undo eligibility pure functions in `lib/undo-eligibility.ts` — `canUndoEndDay(dayRecord, today)`, `canUndoRestDay(dayRecord, today)`, `canUncheckChore(completion, isEnded)` returning boolean based on data-model eligibility rules
+- [x] T005 [P] Update `lib/db/day-records.ts` — map `undo_end_count`, `undo_rest_day_count` in `getOrCreateDayRecord` return; map `uncheck_count` in chore completion queries
+- [x] T006 [P] Write unit tests in `__tests__/unit/undo-eligibility.test.ts` for all three eligibility functions covering: eligible, exhausted, wrong date, day not ended (for undo end day)
 
 **Checkpoint**: Foundation ready — all undo eligibility logic testable and DB layer updated
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Modify `undoEndDay` in `lib/actions/day-records.ts` — add current-day check using `todayInTimezone` from `lib/chore-schedule.ts`; add `undo_end_count == 0` guard; increment `undo_end_count` on successful undo
-- [ ] T008 [US1] Update `app/(dashboard)/page.tsx` — compute `canUndoEnd` using eligibility function; conditionally render `UndoEndDayButton` only when eligible (not just when ended)
-- [ ] T009 [US1] Restyle `components/end-day/UndoEndDayButton.tsx` — change to large rounded-xl styling with bold font and prominent padding matching `EndDayButton`
+- [x] T007 [US1] Modify `undoEndDay` in `lib/actions/day-records.ts` — add current-day check using `todayInTimezone` from `lib/chore-schedule.ts`; add `undo_end_count == 0` guard; increment `undo_end_count` on successful undo
+- [x] T008 [US1] Update `app/(dashboard)/page.tsx` — compute `canUndoEnd` using eligibility function; conditionally render `UndoEndDayButton` only when eligible (not just when ended)
+- [x] T009 [US1] Restyle `components/end-day/UndoEndDayButton.tsx` — change to large rounded-xl styling with bold font and prominent padding matching `EndDayButton`
 
 ### Tests for User Story 1
 
@@ -68,9 +68,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Modify `toggleChore` in `lib/actions/day-records.ts` — when `completed=false` (unchecking), check `uncheck_count == 0` from DB; if > 0, throw error; on successful uncheck, increment `uncheck_count` on the `chore_completions` row
-- [ ] T013 [US2] Update `app/(dashboard)/page.tsx` — include `uncheck_count` (mapped as `uncheckCount`) in the completions passed to `ChoreList`
-- [ ] T014 [US2] Modify `components/chore-list/ChoreItem.tsx` — when `completion.uncheckCount > 0 && isCompleted`, disable the checkbox (lock it); add visual indicator (e.g., lock icon or muted style) showing the chore is permanently checked
+- [x] T012 [US2] Modify `toggleChore` in `lib/actions/day-records.ts` — when `completed=false` (unchecking), check `uncheck_count == 0` from DB; if > 0, throw error; on successful uncheck, increment `uncheck_count` on the `chore_completions` row
+- [x] T013 [US2] Update `app/(dashboard)/page.tsx` — include `uncheck_count` (mapped as `uncheckCount`) in the completions passed to `ChoreList`
+- [x] T014 [US2] Modify `components/chore-list/ChoreItem.tsx` — when `completion.uncheckCount > 0 && isCompleted`, disable the checkbox (lock it); add visual indicator (e.g., lock icon or muted style) showing the chore is permanently checked
 
 ### Tests for User Story 2
 
@@ -89,10 +89,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Add `undoRestDay` server action in `lib/actions/day-records.ts` — check `undo_rest_day_count == 0` and `date == today`; set `is_rest_day = false`; increment `undo_rest_day_count`; insert `rest_day_reversed` activity_log entry with `points_delta: +100`
-- [ ] T018 [US3] Create `components/rest-day/UndoRestDayButton.tsx` — AlertDialog confirmation with large rounded-xl styling; explain that 100 points will be returned; call `undoRestDay` on confirm
-- [ ] T019 [US3] Modify `components/rest-day/RestDayButton.tsx` — when `isRestDay && canUndoRestDay`, render `UndoRestDayButton` instead of the static "Rest Day Active" badge
-- [ ] T020 [US3] Update `app/(dashboard)/page.tsx` — compute `canUndoRestDay` from day record; pass to `RestDayButton`
+- [x] T017 [US3] Add `undoRestDay` server action in `lib/actions/day-records.ts` — check `undo_rest_day_count == 0` and `date == today`; set `is_rest_day = false`; increment `undo_rest_day_count`; insert `rest_day_reversed` activity_log entry with `points_delta: +100`
+- [x] T018 [US3] Create `components/rest-day/UndoRestDayButton.tsx` — AlertDialog confirmation with large rounded-xl styling; explain that 100 points will be returned; call `undoRestDay` on confirm
+- [x] T019 [US3] Modify `components/rest-day/RestDayButton.tsx` — when `isRestDay && canUndoRestDay`, render `UndoRestDayButton` instead of the static "Rest Day Active" badge
+- [x] T020 [US3] Update `app/(dashboard)/page.tsx` — compute `canUndoRestDay` from day record; pass to `RestDayButton`
 
 ### Tests for User Story 3
 
@@ -105,8 +105,8 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T023 Update `components/activity-log/ActivityLogTable.tsx` — add display labels for `rest_day_reversed` action type
-- [ ] T024 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions
+- [x] T023 Update `components/activity-log/ActivityLogTable.tsx` — add display labels for `rest_day_reversed` action type
+- [x] T024 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions
 
 ---
 

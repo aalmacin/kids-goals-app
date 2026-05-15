@@ -16,9 +16,10 @@ interface ChoreItemProps {
 export function ChoreItem({ completion, dayRecordId, isEnded }: ChoreItemProps) {
   const [isPending, startTransition] = useTransition()
   const isCompleted = completion.completedAt !== null
+  const isLocked = isCompleted && completion.uncheckCount > 0
 
   function handleToggle() {
-    if (isEnded) return
+    if (isEnded || isLocked) return
     startTransition(async () => {
       await toggleChore(completion.id, !isCompleted, dayRecordId)
     })
@@ -35,7 +36,7 @@ export function ChoreItem({ completion, dayRecordId, isEnded }: ChoreItemProps) 
       <Checkbox
         checked={isCompleted}
         onCheckedChange={handleToggle}
-        disabled={isEnded || isPending}
+        disabled={isEnded || isLocked || isPending}
         className="w-6 h-6"
       />
 

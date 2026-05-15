@@ -21,6 +21,7 @@ function makeCompletion(
     isImportantSnapshot: false,
     rewardSnapshot: 0,
     completedAt: null,
+    uncheckCount: 0,
     ...overrides,
   }
 }

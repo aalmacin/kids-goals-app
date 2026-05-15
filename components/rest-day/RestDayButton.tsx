@@ -13,21 +13,26 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { UndoRestDayButton } from '@/components/rest-day/UndoRestDayButton'
 import { declareRestDay } from '@/lib/actions/day-records'
 
 interface RestDayButtonProps {
   dayRecordId: string
   kidPoints: number
   isRestDay: boolean
+  canUndoRestDay?: boolean
 }
 
-export function RestDayButton({ dayRecordId, kidPoints, isRestDay }: RestDayButtonProps) {
+export function RestDayButton({ dayRecordId, kidPoints, isRestDay, canUndoRestDay }: RestDayButtonProps) {
   const [isPending, startTransition] = useTransition()
 
   if (isRestDay) {
     return (
-      <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-xl font-medium text-sm">
-        🏖️ Rest Day Active
+      <div className="flex items-center gap-3">
+        <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-xl font-medium text-sm">
+          🏖️ Rest Day Active
+        </div>
+        {canUndoRestDay && <UndoRestDayButton dayRecordId={dayRecordId} />}
       </div>
     )
   }

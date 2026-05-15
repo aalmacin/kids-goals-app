@@ -9,7 +9,8 @@ import { EndDayButton } from '@/components/end-day/EndDayButton'
 import { UndoEndDayButton } from '@/components/end-day/UndoEndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
 import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate, todayInTimezone } from '@/lib/chore-schedule'
-import type { ChoreCompletion, EffortLevel } from '@/lib/types'
+import { canUndoEndDay, canUndoRestDay } from '@/lib/undo-eligibility'
+import type { ChoreCompletion, DayRecord, EffortLevel } from '@/lib/types'
 
 export default async function DashboardPage({
   searchParams,
@@ -102,6 +103,7 @@ export default async function DashboardPage({
     isImportantSnapshot: c.is_important_snapshot,
     rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
+    uncheckCount: c.uncheck_count,
   }))
 
   // Fetch effort levels for end-day
@@ -121,6 +123,22 @@ export default async function DashboardPage({
   const allChoresDone = completions.every((c) => c.completedAt !== null)
   const isEnded = dayRecord.ended_at !== null
   const isToday = date === today
+
+  // Map day record for eligibility checks
+  const typedDayRecord: DayRecord = {
+    id: dayRecord.id,
+    kidId: dayRecord.kid_id,
+    date: dayRecord.date,
+    isRestDay: dayRecord.is_rest_day,
+    effortLevelId: dayRecord.effort_level_id,
+    endedAt: dayRecord.ended_at,
+    undoEndCount: dayRecord.undo_end_count,
+    undoRestDayCount: dayRecord.undo_rest_day_count,
+    choreCompletions: completions,
+  }
+
+  const canUndoEnd = canUndoEndDay(typedDayRecord, today)
+  const canUndoRest = canUndoRestDay(typedDayRecord, today)
 
   const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -146,7 +164,7 @@ export default async function DashboardPage({
             <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
               Day Ended ✓
             </div>
-            <UndoEndDayButton dayRecordId={dayRecord.id} />
+            {canUndoEnd && <UndoEndDayButton dayRecordId={dayRecord.id} />}
           </div>
         )}
       </div>
@@ -172,6 +190,7 @@ export default async function DashboardPage({
             dayRecordId={dayRecord.id}
             kidPoints={kid.points}
             isRestDay={dayRecord.is_rest_day}
+            canUndoRestDay={canUndoRest}
           />
           <EndDayButton
             dayRecordId={dayRecord.id}

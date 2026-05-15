@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
 import { calculatePenalties, calculateEffortReward, calculateChoreRewards } from '@/lib/points'
-import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
+import { isChoreAvailableOn, dayOfWeekFromDate, todayInTimezone } from '@/lib/chore-schedule'
 import type { ChoreCompletion } from '@/lib/types'
 
 async function getCurrentKid() {
@@ -36,6 +36,25 @@ export async function toggleChore(completionId: string, completed: boolean, dayR
     .single()
 
   if (dayRecord?.ended_at) throw new Error('Day has already ended')
+
+  // Enforce uncheck limit (only one uncheck per chore per day)
+  if (!completed) {
+    const { data: completionRow } = await supabase
+      .from('chore_completions')
+      .select('uncheck_count')
+      .eq('id', completionId)
+      .single()
+
+    if (completionRow && completionRow.uncheck_count >= 1) {
+      throw new Error('Chore can only be unchecked once per day')
+    }
+
+    // Increment uncheck_count
+    await supabase
+      .from('chore_completions')
+      .update({ uncheck_count: (completionRow?.uncheck_count ?? 0) + 1 })
+      .eq('id', completionId)
+  }
 
   // Enforce chore schedule server-side (only block completion, not un-completion)
   if (completed) {
@@ -166,6 +185,7 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     isImportantSnapshot: c.is_important_snapshot,
     rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
+    uncheckCount: c.uncheck_count,
   }))
 
   const totalPenalty = calculatePenalties(completions, dayRecord!.is_rest_day)
@@ -257,12 +277,24 @@ export async function undoEndDay(dayRecordId: string) {
 
   const { data: dayRecord } = await supabase
     .from('day_records')
-    .select('ended_at, kid_id')
+    .select('ended_at, kid_id, date, undo_end_count')
     .eq('id', dayRecordId)
     .single()
 
   if (!dayRecord?.ended_at) return { error: 'Day has not been ended' }
   if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
+
+  // Current-day restriction
+  const { data: family } = await supabase
+    .from('families')
+    .select('timezone')
+    .eq('id', kid.family_id)
+    .single()
+  const today = todayInTimezone(family?.timezone ?? 'UTC')
+  if (dayRecord.date !== today) return { error: 'Can only undo today\'s end day' }
+
+  // One-undo limit
+  if (dayRecord.undo_end_count >= 1) return { error: 'Undo already used for today' }
 
   // Find the most recent day_ended event to establish the upper bound of the current End Day run
   const { data: dayEndedEvent } = await supabase
@@ -345,8 +377,58 @@ export async function undoEndDay(dayRecordId: string) {
 
   await supabase
     .from('day_records')
-    .update({ ended_at: null, effort_level_id: null })
+    .update({ ended_at: null, effort_level_id: null, undo_end_count: dayRecord.undo_end_count + 1 })
     .eq('id', dayRecordId)
+
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function undoRestDay(dayRecordId: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: kid } = await supabase
+    .from('kids')
+    .select('id, family_id')
+    .eq('supabase_user_id', user.id)
+    .maybeSingle()
+
+  if (!kid) throw new Error('Kid not found')
+
+  const { data: dayRecord } = await supabase
+    .from('day_records')
+    .select('is_rest_day, kid_id, date, undo_rest_day_count')
+    .eq('id', dayRecordId)
+    .single()
+
+  if (!dayRecord?.is_rest_day) return { error: 'Not a rest day' }
+  if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
+
+  const { data: family } = await supabase
+    .from('families')
+    .select('timezone')
+    .eq('id', kid.family_id)
+    .single()
+  const today = todayInTimezone(family?.timezone ?? 'UTC')
+  if (dayRecord.date !== today) return { error: 'Can only undo today\'s rest day' }
+
+  if (dayRecord.undo_rest_day_count >= 1) return { error: 'Undo already used for rest day today' }
+
+  await supabase
+    .from('day_records')
+    .update({ is_rest_day: false, undo_rest_day_count: dayRecord.undo_rest_day_count + 1 })
+    .eq('id', dayRecordId)
+
+  await supabase.from('activity_log').insert({
+    family_id: kid.family_id,
+    kid_id: kid.id,
+    actor_type: 'kid' as const,
+    action_type: 'rest_day_reversed' as const,
+    metadata: { day_record_id: dayRecordId },
+    points_delta: 100,
+  })
 
   revalidatePath('/')
   return { success: true }
