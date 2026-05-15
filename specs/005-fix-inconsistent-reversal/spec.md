@@ -109,6 +109,12 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 - Q: When a kid undoes end-day on a rest day, is the rest day purchase also reversed? → A: No. Rest day is a separate undoable action with its own independent one-undo limit.
 - Q: When end-day is undone, what happens to the effort level selection and effort reward points? → A: Effort level selection is cleared and effort reward points are reversed. Kid picks effort level fresh when re-ending.
 - Q: Should "Undo End Day" require a confirmation dialog? → A: Yes, with a confirmation dialog consistent with "End Day". All action buttons must be large and prominent for kids.
+- Q: Should task undo also be limited to once per day like chores? → A: No. Task undo is a separate system — tasks update points immediately and have their own undo rules. This feature only covers chores, end-day, and rest day reversal.
+
+## Scope
+
+**In scope**: Chore uncheck limits, undo end-day, undo rest day.
+**Out of scope**: Task undo behavior. Tasks are a separate system with immediate point updates and their own independent undo rules (unchanged by this feature).
 
 ## Assumptions
 
