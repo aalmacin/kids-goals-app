@@ -25,4 +25,33 @@ test.describe('Repeated Task Completion', () => {
     // After 1 completion (the limit), task should no longer appear
     await expect(page.getByText('Test Capped Task')).not.toBeVisible()
   })
+
+  test.skip('daily count badge appears after completing a repeated task', async ({ page }) => {
+    await page.goto('/kid-login')
+    await expect(page.getByText('Test Repeated Task')).toBeVisible()
+    await page.getByText('Test Repeated Task').click()
+    await expect(page.getByText('done 1 today')).toBeVisible()
+    await page.getByText('Test Repeated Task').click()
+    await expect(page.getByText('done 2 today')).toBeVisible()
+  })
+
+  test.skip('undo button reduces count and deducts points', async ({ page }) => {
+    await page.goto('/kid-login')
+    // Complete the task first
+    await page.getByText('Test Repeated Task').click()
+    await expect(page.getByText('done 1 today')).toBeVisible()
+    // Click undo (minus button)
+    await page.getByLabel(/Undo last completion/).click()
+    // Count badge should disappear since todayCount is back to 0
+    await expect(page.getByText('done 1 today')).not.toBeVisible()
+  })
+
+  test.skip('once-per-day task disappears after completion', async ({ page }) => {
+    // Task seeded with once_per_day = true
+    await page.goto('/kid-login')
+    await expect(page.getByText('Test Once Per Day Task')).toBeVisible()
+    await page.getByText('Test Once Per Day Task').click()
+    // Task should no longer be visible for the rest of the day
+    await expect(page.getByText('Test Once Per Day Task')).not.toBeVisible()
+  })
 })

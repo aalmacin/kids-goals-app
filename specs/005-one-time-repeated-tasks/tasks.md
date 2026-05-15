@@ -75,9 +75,9 @@
 
 **⚠️ CRITICAL**: No enhancement work (Phases 9–10) can begin until this phase and Phase 8 are complete.
 
-- [ ] T018 Create `supabase/migrations/0014_task_extensions.sql` — add `once_per_day boolean NOT NULL DEFAULT false` column to `tasks` table; drop and re-add `activity_log_action_type_check` constraint to include `'task_completion_reversed'`; add DELETE RLS policy `kid_delete_own_task_completions` on `task_completions` for kids (own kid_id only)
-- [ ] T019 [P] Update `lib/types.ts` — add `oncePerDay: boolean` to `Task` type; add `TaskWithCounts` type (`Task & { todayCount: number }`); add `'task_completion_reversed'` to `ActivityLogEntry.actionType` union
-- [ ] T020 [P] Update `lib/database.types.ts` — add `once_per_day` to tasks table type definition; add `'task_completion_reversed'` to activity_log action_type union
+- [x] T018 Create `supabase/migrations/0014_task_extensions.sql` — add `once_per_day boolean NOT NULL DEFAULT false` column to `tasks` table; drop and re-add `activity_log_action_type_check` constraint to include `'task_completion_reversed'`; add DELETE RLS policy `kid_delete_own_task_completions` on `task_completions` for kids (own kid_id only)
+- [x] T019 [P] Update `lib/types.ts` — add `oncePerDay: boolean` to `Task` type; add `TaskWithCounts` type (`Task & { todayCount: number }`); add `'task_completion_reversed'` to `ActivityLogEntry.actionType` union
+- [x] T020 [P] Update `lib/database.types.ts` — add `once_per_day` to tasks table type definition; add `'task_completion_reversed'` to activity_log action_type union
 
 ---
 
@@ -87,8 +87,8 @@
 
 **⚠️ CRITICAL**: No user story enhancement work (Phases 9–10) can begin until this phase is complete.
 
-- [ ] T021 Update `lib/db/tasks.ts` — update `mapTask` to include `oncePerDay` from `once_per_day` column; update `getAvailableTasksForKid(kidId, familyId, familyTimezone)` to accept `familyTimezone` parameter, return `TaskWithCounts[]` with `todayCount` (partition completions by today vs all-time using family timezone), filter out `once_per_day` tasks where `todayCount > 0`; update `createTask` signature to accept `oncePerDay: boolean`; add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` that deletes the most recent completion for today and returns `{ pointsSnapshot: number } | null`
-- [ ] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, validate task is repeated, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`)
+- [x] T021 Update `lib/db/tasks.ts` — update `mapTask` to include `oncePerDay` from `once_per_day` column; update `getAvailableTasksForKid(kidId, familyId, familyTimezone)` to accept `familyTimezone` parameter, return `TaskWithCounts[]` with `todayCount` (partition completions by today vs all-time using family timezone), filter out `once_per_day` tasks where `todayCount > 0`; update `createTask` signature to accept `oncePerDay: boolean`; add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` that deletes the most recent completion for today and returns `{ pointsSnapshot: number } | null`
+- [x] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, validate task is repeated, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`)
 
 **Checkpoint**: Foundation enhanced — UI work can now begin.
 
@@ -100,10 +100,10 @@
 
 **Independent Test**: Seed a repeated task (unlimited) and a once-per-day task. Log in as kid, complete unlimited task 3 times — see "done 3 times today" badge, click undo — count decreases to 2 and points deducted. Complete once-per-day task — task disappears from list for the rest of the day.
 
-- [ ] T023 [US2] Update `components/task-list/TaskList.tsx` — change props to accept `TaskWithCounts[]` instead of `Task[]`; pass `todayCount` to each `TaskItem`
-- [ ] T024 [US2] Update `components/task-list/TaskItem.tsx` — accept `todayCount` prop; for repeated tasks with `todayCount > 0`: show "done N today" badge (text-amber-600 border-amber-300); add undo button (Minus icon from lucide-react) that calls `undoLastTaskCompletionAction(task.id)` with its own `useTransition` pending state; keep existing functionality intact (AlertDialog for one-time, direct click for repeated)
-- [ ] T025 [US2] Update `app/(dashboard)/page.tsx` — pass `familyTimezone` to `getAvailableTasksForKid(kid.id, kid.family_id, familyTimezone)` call; type the result as `TaskWithCounts[]`; pass full `TaskWithCounts[]` to `<TaskList>`
-- [ ] T026 [P] [US2] Update E2E test `__tests__/e2e/repeated-task.spec.ts` — add test: daily count badge appears after completing a repeated task; add test: undo button reduces count and deducts points; add test: once-per-day task disappears after completion and cannot be clicked again same day
+- [x] T023 [US2] Update `components/task-list/TaskList.tsx` — change props to accept `TaskWithCounts[]` instead of `Task[]`; pass `todayCount` to each `TaskItem`
+- [x] T024 [US2] Update `components/task-list/TaskItem.tsx` — accept `todayCount` prop; for repeated tasks with `todayCount > 0`: show "done N today" badge (text-amber-600 border-amber-300); add undo button (Minus icon from lucide-react) that calls `undoLastTaskCompletionAction(task.id)` with its own `useTransition` pending state; keep existing functionality intact (AlertDialog for one-time, direct click for repeated)
+- [x] T025 [US2] Update `app/(dashboard)/page.tsx` — pass `familyTimezone` to `getAvailableTasksForKid(kid.id, kid.family_id, familyTimezone)` call; type the result as `TaskWithCounts[]`; pass full `TaskWithCounts[]` to `<TaskList>`
+- [x] T026 [P] [US2] Update E2E test `__tests__/e2e/repeated-task.spec.ts` — add test: daily count badge appears after completing a repeated task; add test: undo button reduces count and deducts points; add test: once-per-day task disappears after completion and cannot be clicked again same day
 
 **Checkpoint**: Kids see daily counts, can undo accidental clicks, once-per-day tasks correctly restricted.
 
@@ -115,8 +115,8 @@
 
 **Independent Test**: Log in as parent, create a repeated task with "Once per day" checked — task shows "once/day" badge in the admin list; create a one-time task — once-per-day checkbox not shown or irrelevant.
 
-- [ ] T027 [US3] Update `app/(admin)/admin/tasks/page.tsx` — add "Once per day" checkbox (`name="oncePerDay"`) shown conditionally when task type is `repeated` (requires extracting the form into a client component or using JS to toggle visibility); display "once/day" badge on tasks where `oncePerDay === true` in the task list
-- [ ] T028 [P] [US3] Update E2E test `__tests__/e2e/admin-tasks.spec.ts` — add test: create repeated task with once-per-day checked, verify it shows "once/day" badge in admin list and only allows one completion per day on kid dashboard
+- [x] T027 [US3] Update `app/(admin)/admin/tasks/page.tsx` — add "Once per day" checkbox (`name="oncePerDay"`) shown conditionally when task type is `repeated` (requires extracting the form into a client component or using JS to toggle visibility); display "once/day" badge on tasks where `oncePerDay === true` in the task list
+- [x] T028 [P] [US3] Update E2E test `__tests__/e2e/admin-tasks.spec.ts` — add test: create repeated task with once-per-day checked, verify it shows "once/day" badge in admin list and only allows one completion per day on kid dashboard
 
 **Checkpoint**: Admin can create and identify once-per-day tasks.
 
@@ -126,8 +126,8 @@
 
 **Purpose**: Integration and unit test coverage for new enhancement logic.
 
-- [ ] T029 [P] Update integration test `__tests__/integration/tasks.test.ts` — add test: `once_per_day` filter correctly excludes tasks already done today; add test: kid DELETE RLS policy on `task_completions` works; add test: `task_completion_reversed` activity_log entry is created with correct negative `points_delta`
-- [ ] T030 [P] Update unit test `__tests__/unit/task-completion-guard.test.ts` — add test: `completeTaskAction` rejects repeated once-per-day task already completed today; add test: `undoLastTaskCompletionAction` rejects undo for one-time task; add test: `undoLastTaskCompletionAction` rejects undo when no same-day completion exists
+- [x] T029 [P] Update integration test `__tests__/integration/tasks.test.ts` — add test: `once_per_day` filter correctly excludes tasks already done today; add test: kid DELETE RLS policy on `task_completions` works; add test: `task_completion_reversed` activity_log entry is created with correct negative `points_delta`
+- [x] T030 [P] Update unit test `__tests__/unit/task-completion-guard.test.ts` — add test: `completeTaskAction` rejects repeated once-per-day task already completed today; add test: `undoLastTaskCompletionAction` rejects undo for one-time task; add test: `undoLastTaskCompletionAction` rejects undo when no same-day completion exists
 
 ---
 

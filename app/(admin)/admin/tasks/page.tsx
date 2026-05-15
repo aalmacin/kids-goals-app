@@ -2,13 +2,11 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getFamilyByParentId } from '@/lib/db/families'
 import { getTaskLibrary } from '@/lib/db/tasks'
-import { createTaskAction, deleteTaskAction } from '@/lib/actions/tasks'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { deleteTaskAction } from '@/lib/actions/tasks'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CreateTaskForm } from '@/components/admin/CreateTaskForm'
 import { Trash2 } from 'lucide-react'
 
 export default async function TasksPage() {
@@ -25,53 +23,7 @@ export default async function TasksPage() {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-gray-800">Task Library</h1>
 
-      {/* Add Task Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add a Task</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={createTaskAction} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Task Name</Label>
-                <Input id="name" name="name" placeholder="Read a book" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="points">Points Reward</Label>
-                <Input id="points" name="points" type="number" min={1} defaultValue={10} required />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="taskType">Task Type</Label>
-                <Select name="taskType" defaultValue="one_time">
-                  <SelectTrigger id="taskType">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="one_time">One-Time</SelectItem>
-                    <SelectItem value="repeated">Repeated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxCompletions">Max Completions (repeated only, leave blank for unlimited)</Label>
-                <Input
-                  id="maxCompletions"
-                  name="maxCompletions"
-                  type="number"
-                  min={1}
-                  placeholder="Unlimited"
-                />
-              </div>
-            </div>
-
-            <Button type="submit">Add Task</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <CreateTaskForm />
 
       {/* Task List */}
       <div className="space-y-3">
@@ -95,9 +47,14 @@ export default async function TasksPage() {
                       max {task.maxCompletions}×
                     </Badge>
                   )}
-                  {task.taskType === 'repeated' && task.maxCompletions === null && (
+                  {task.taskType === 'repeated' && task.maxCompletions === null && !task.oncePerDay && (
                     <Badge variant="outline" className="text-xs text-gray-500">
                       unlimited
+                    </Badge>
+                  )}
+                  {task.taskType === 'repeated' && task.oncePerDay && (
+                    <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
+                      once/day
                     </Badge>
                   )}
                 </div>

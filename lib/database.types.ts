@@ -286,6 +286,7 @@ export type Database = {
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
             | 'task_completed'
+            | 'task_completion_reversed'
           metadata: Json
           points_delta: number | null
           created_at: string
@@ -312,6 +313,7 @@ export type Database = {
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
             | 'task_completed'
+            | 'task_completion_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -338,6 +340,7 @@ export type Database = {
             | 'effort_reversed'
             | 'chore_completion_reward_reversed'
             | 'task_completed'
+            | 'task_completion_reversed'
           metadata?: Json
           points_delta?: number | null
           created_at?: string
@@ -352,6 +355,7 @@ export type Database = {
           points: number
           task_type: 'one_time' | 'repeated'
           max_completions: number | null
+          once_per_day: boolean
           deleted_at: string | null
           created_at: string
         }
@@ -362,6 +366,7 @@ export type Database = {
           points: number
           task_type: 'one_time' | 'repeated'
           max_completions?: number | null
+          once_per_day?: boolean
           deleted_at?: string | null
           created_at?: string
         }
@@ -372,6 +377,7 @@ export type Database = {
           points?: number
           task_type?: 'one_time' | 'repeated'
           max_completions?: number | null
+          once_per_day?: boolean
           deleted_at?: string | null
           created_at?: string
         }

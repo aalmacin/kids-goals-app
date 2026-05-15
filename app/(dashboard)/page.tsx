@@ -46,7 +46,7 @@ export default async function DashboardPage({
 
   const [dayRecord, availableTasks] = await Promise.all([
     getOrCreateDayRecord(kid.id, date),
-    getAvailableTasksForKid(kid.id, kid.family_id),
+    getAvailableTasksForKid(kid.id, kid.family_id, familyTimezone),
   ])
 
   // Compute unavailable chores (assigned but schedule-blocked for this date)

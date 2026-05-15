@@ -38,4 +38,17 @@ test.describe('Admin Task Management', () => {
     // Expect validation error — HTML5 min=1 prevents submission
     await expect(page.getByText('Bad Task')).not.toBeVisible()
   })
+
+  test.skip('create repeated task with once-per-day checked', async ({ page }) => {
+    await page.goto('/admin/tasks')
+    await page.getByLabel('Task Name').fill('Daily Reading')
+    await page.getByLabel('Points Reward').fill('15')
+    // select repeated type
+    await page.getByRole('combobox').selectOption('repeated')
+    await page.getByLabel('Once per day').check()
+    await page.getByRole('button', { name: 'Add Task' }).click()
+    // Verify the task appears with once/day badge
+    await expect(page.getByText('Daily Reading')).toBeVisible()
+    await expect(page.getByText('once/day')).toBeVisible()
+  })
 })

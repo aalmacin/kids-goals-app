@@ -120,11 +120,15 @@
 
 ---
 
-## Decision 13: Undo UI — Repeated Tasks Only, Today Count > 0
+## Decision 13: Undo UI — All Task Types, Today Count > 0
 
-**Decision**: `TaskItem` shows a count badge ("done N times today") and an undo button for `repeated` tasks where `todayCount > 0`. No undo for `one_time` tasks (they have a confirmation dialog that gates completion).
+**Decision**: `TaskItem` shows an undo button for any task with `todayCount > 0`, including one-time tasks. Completed tasks remain visible on the dashboard with a "done" state (green border, strikethrough, non-clickable) until end of day so undo is always accessible.
 
-**Rationale**: One-time tasks are intentionally gated by confirmation; adding undo would contradict the "permanent" semantic. For repeated tasks, accidental double-clicks are the main UX concern.
+**Rationale**: Even with a confirmation dialog, accidental one-time completions can happen (child confirms by mistake). Keeping completed tasks visible with undo prevents irreversible mistakes during the same day while still enforcing the one-time constraint for future days.
+
+**Alternatives considered**:
+- Undo for repeated tasks only — rejected (one-time mistakes are more costly since they're permanent).
+- Remove completed tasks immediately — rejected (makes undo inaccessible; poor UX for accidental clicks).
 
 ---
 

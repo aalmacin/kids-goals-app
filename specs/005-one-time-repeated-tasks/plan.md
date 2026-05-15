@@ -8,7 +8,7 @@
 Implement one-time and repeated task types for kids to complete and earn points. The feature includes:
 - Two task types: `one_time` (completable once per kid, confirmation dialog required) and `repeated` (completable multiple times, optional per-total or per-day limit)
 - Daily completion count display on the kid dashboard so kids can see how many times they've done a task today
-- Undo functionality for repeated task completions (accidental click recovery) — same-day only
+- Undo functionality for all task completions (accidental click recovery) — same-day only, works for both one-time and repeated tasks
 - A new "once per day" flag on repeated tasks that prevents re-selection the same calendar day
 - Parent admin UI (task CRUD) and kid dashboard task list
 
@@ -113,9 +113,9 @@ No constitution violations. All patterns follow existing architecture.
 ### Phase B: Type & DB Layer
 
 1. Update `Task` type: add `oncePerDay: boolean`
-2. Add `TaskWithCounts` type: `Task & { todayCount: number }`
+2. Add `TaskWithCounts` type: `Task & { todayCount: number, remaining: number | null, completedForNow: boolean }`
 3. Update `ActivityLogEntry.actionType`: add `'task_completion_reversed'`
-4. Update `getAvailableTasksForKid`: return `TaskWithCounts[]`, partition completions by today vs all-time, apply once_per_day filter
+4. Update `getAvailableTasksForKid`: return `TaskWithCounts[]`, partition completions by today vs all-time; keep tasks completed today visible (with `completedForNow: true`) so the kid can undo them
 5. Add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` to `lib/db/tasks.ts`
 6. Update `createTask` signature to include `oncePerDay`
 
@@ -123,15 +123,17 @@ No constitution violations. All patterns follow existing architecture.
 
 1. Update `createTaskAction`: parse and pass `oncePerDay` field
 2. Update `completeTaskAction`: enforce once_per_day constraint (check todayCount > 0 → reject)
-3. Add `undoLastTaskCompletionAction(taskId)`: fetch family timezone, verify completion is today, delete record, insert reversal log entry
+3. Add `undoLastTaskCompletionAction(taskId)`: fetch family timezone, verify completion is today, delete record, insert reversal log entry — works for all task types (no one-time restriction)
 
 ### Phase D: UI Components
 
-1. Update `TaskList`: accept `TaskWithCounts[]`
+1. Update `TaskList`: accept `TaskWithCounts[]`; group tasks by type (one-time vs repeatable) with section headers
 2. Update `TaskItem`:
-   - Show "done N times today" badge when `todayCount > 0` (repeated tasks)
-   - Show undo button when `todayCount > 0` (repeated tasks only)
-   - Undo triggers `undoLastTaskCompletionAction`
+   - Colored icon circles (blue Check for one-time, green Repeat for repeated)
+   - Two-line layout: task name on top, badges below
+   - Show "Nx today" count pill for repeated tasks with `todayCount > 0`
+   - Show undo button (with Undo2 icon) when `todayCount > 0` for all task types
+   - Completed tasks (`completedForNow: true`) render with green border, strikethrough name, "done" badge, non-clickable card, but undo button still active
 3. Update dashboard page: pass `TaskWithCounts[]` to `TaskList`
 4. Update admin tasks page: add "Once per day" checkbox (shown for `repeated` type)
 

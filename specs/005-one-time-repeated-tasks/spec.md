@@ -20,8 +20,9 @@ A child sees a one-time task available in their task list. They click it, are sh
 1. **Given** a child has an available one-time task, **When** they click the task, **Then** a confirmation dialog is shown asking them to confirm completion.
 2. **Given** the confirmation dialog is shown, **When** the child confirms, **Then** they receive the task's point reward and the task is marked as completed.
 3. **Given** the confirmation dialog is shown, **When** the child cancels, **Then** the task remains available and no points are awarded.
-4. **Given** a one-time task has been completed, **When** the child views their task list, **Then** the completed task is no longer available to perform.
+4. **Given** a one-time task has been completed, **When** the child views their task list, **Then** the completed task remains visible with a "done" state and an undo button until end of day.
 5. **Given** a one-time task has been completed, **When** the child views their activity log, **Then** the completed task appears as an entry with the awarded points.
+6. **Given** a one-time task was completed today, **When** the child clicks undo, **Then** the completion is reversed, points are deducted, and the task becomes available again.
 
 ---
 
@@ -72,7 +73,7 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 ### Functional Requirements
 
 - **FR-001**: System MUST support two task types: "one-time" and "repeated".
-- **FR-002**: One-time tasks MUST only be completable once per child; subsequent completion attempts MUST be rejected.
+- **FR-002**: One-time tasks MUST only be completable once per child; subsequent completion attempts MUST be rejected. Completed one-time tasks MUST remain visible with undo until end of day.
 - **FR-003**: System MUST display a confirmation prompt before a one-time task is marked as completed.
 - **FR-004**: Completing a one-time or repeated task MUST award the child the task's configured point value.
 - **FR-005**: Completed one-time and repeated task completions MUST be recorded in the child's activity log.
@@ -82,6 +83,10 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 - **FR-009**: Parents/admins MUST be able to create tasks and specify: task type (one-time or repeated), name, point value, and (for repeated tasks) optional maximum completion count.
 - **FR-010**: System MUST prevent saving a repeated task with a maximum completion count of zero or a negative number.
 - **FR-011**: The admin navigation bar MUST include a "Tasks" link that navigates to the task management page.
+- **FR-012**: Completed tasks (one-time, once-per-day, or max-completions reached) MUST remain visible on the dashboard until end of day with a completed state and an undo button.
+- **FR-013**: Undo MUST be available for all task types (one-time and repeated) for same-day completions only.
+- **FR-014**: Repeated tasks MUST support a "once per day" option that limits the task to one completion per calendar day.
+- **FR-015**: The task list MUST display daily completion counts for repeated tasks and group tasks by type (one-time vs repeatable).
 
 ### Key Entities
 
