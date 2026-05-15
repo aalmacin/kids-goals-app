@@ -25,9 +25,24 @@ CREATE TABLE task_completions (
 );
 
 -- Prevent a kid from completing a one-time task more than once
-CREATE UNIQUE INDEX task_completions_one_time_unique
-  ON task_completions (task_id, kid_id)
-  WHERE (SELECT task_type FROM tasks WHERE id = task_id) = 'one_time';
+CREATE OR REPLACE FUNCTION check_one_time_task_completion()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT task_type FROM tasks WHERE id = NEW.task_id) = 'one_time' THEN
+    IF EXISTS (
+      SELECT 1 FROM task_completions
+      WHERE task_id = NEW.task_id AND kid_id = NEW.kid_id
+    ) THEN
+      RAISE EXCEPTION 'One-time task already completed by this kid';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_one_time_task_completion
+  BEFORE INSERT ON task_completions
+  FOR EACH ROW EXECUTE FUNCTION check_one_time_task_completion();
 
 -- ============================================================
 -- activity_log: add 'task_completed' action type
@@ -39,6 +54,8 @@ ALTER TABLE activity_log ADD CONSTRAINT activity_log_action_type_check
     'chore_completed', 'chore_unchecked', 'rest_day_purchased',
     'reward_redeemed', 'day_ended', 'penalty_applied', 'effort_awarded',
     'chore_assigned', 'chore_unassigned', 'manual_adjustment',
+    'day_undone', 'penalty_reversed', 'effort_reversed',
+    'chore_completion_reward', 'chore_completion_reward_reversed',
     'task_completed'
   ));
 

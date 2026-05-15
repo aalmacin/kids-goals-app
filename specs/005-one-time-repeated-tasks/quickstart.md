@@ -3,62 +3,87 @@
 ## Prerequisites
 
 - Supabase CLI installed
-- Local Supabase instance running (`supabase start`)
+- Local Supabase instance running (`bun run db:start`)
 
-## 1. Apply Database Migration
+---
 
-Migration file: `supabase/migrations/0007_tasks.sql`
+## 1. Apply Database Migrations
 
-Apply it:
+**Migration 0013** (already in codebase): Creates `tasks` and `task_completions` tables, enables RLS, adds `task_completed` action type.
 
+**Migration 0014** (new):
 ```bash
-supabase db push
+bun run db:reset
 ```
 
-The migration:
+Migration 0014 adds:
+- `tasks.once_per_day` boolean column
+- `task_completion_reversed` to activity_log action_type CHECK constraint
+- DELETE RLS policy on `task_completions` for kids
 
-1. Create `tasks` table with `task_type` CHECK and `max_completions` constraint
-2. Create `task_completions` table with partial unique index for one-time tasks
-3. Add `'task_completed'` to `activity_log` action_type CHECK constraint
-4. Enable RLS on both new tables
-5. Add RLS policies for parent (ALL) and kid (SELECT on tasks, SELECT+INSERT on task_completions)
+---
 
-See `data-model.md` for full column definitions and RLS policy SQL.
+## 2. Update TypeScript Types (`lib/types.ts`)
 
-## 2. Update TypeScript Types
+- Add `oncePerDay: boolean` to `Task`
+- Add `TaskWithCounts = Task & { todayCount: number }`
+- Add `'task_completion_reversed'` to `ActivityLogEntry.actionType` union
 
-- Add `Task` and `TaskCompletion` types to `lib/types.ts`
-- Add `tasks` and `task_completions` table definitions to `lib/database.types.ts`
-- Add `'task_completed'` to `ActivityLogEntry.actionType` union in both files
+---
 
-## 3. Add DB Query Layer
+## 3. Update DB Query Layer (`lib/db/tasks.ts`)
 
-Create `lib/db/tasks.ts` with functions per `contracts/server-actions.md`.
+- Update `mapTask` to map `once_per_day` column
+- Update `getAvailableTasksForKid(kidId, familyId, familyTimezone)`:
+  - Accept `familyTimezone` parameter
+  - Partition completions into "today" (>= start of calendar day) and "all-time"
+  - Apply once_per_day filter using `todayCount`
+  - Return `TaskWithCounts[]`
+- Update `createTask` signature to accept `oncePerDay`
+- Add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` function
 
-## 4. Add Server Actions
+---
 
-Create `lib/actions/tasks.ts` (`'use server'`) with:
-- `createTaskAction` — parent creates a task
-- `deleteTaskAction` — parent soft-deletes a task
-- `completeTaskAction` — kid completes a task
+## 4. Update Server Actions (`lib/actions/tasks.ts`)
 
-## 5. Admin UI
+- Update `createTaskAction`: parse `oncePerDay` from FormData, force `false` for `one_time` tasks
+- Update `completeTaskAction`: fetch family timezone, enforce `once_per_day` guard
+- Add `undoLastTaskCompletionAction(taskId)`: require kid session, fetch family timezone, call `undoLastTaskCompletion`, insert reversal activity_log entry
 
-- Add `"Tasks"` link to admin navbar in `app/(admin)/admin/layout.tsx`
-- Create `app/(admin)/admin/tasks/page.tsx` — task CRUD page (mirrors chores page pattern)
+---
 
-## 6. Kid Dashboard UI
+## 5. Update Admin UI (`app/(admin)/admin/tasks/page.tsx`)
 
-- Create `components/task-list/TaskItem.tsx` — client component with `AlertDialog` confirmation for one-time tasks
-- Create `components/task-list/TaskList.tsx` — renders task items
-- Update `app/(dashboard)/page.tsx` — fetch available tasks server-side, render `TaskList` below chores
+- Add `oncePerDay` checkbox to the create task form
+- Make checkbox conditionally visible based on selected task type (requires converting the Select to a controlled client component or using a hidden input approach)
+- Display `once_per_day` badge in the task list
+
+---
+
+## 6. Update Kid Dashboard UI
+
+- `components/task-list/TaskList.tsx`: accept `TaskWithCounts[]`
+- `components/task-list/TaskItem.tsx`:
+  - Receive `todayCount` prop
+  - Show "done N times today" badge for repeated tasks when `todayCount > 0`
+  - Show undo button for repeated tasks when `todayCount > 0`
+  - Undo button calls `undoLastTaskCompletionAction`
+- `app/(dashboard)/page.tsx`: pass `familyTimezone` to `getAvailableTasksForKid`, pass `TaskWithCounts[]` to `TaskList`
+
+---
 
 ## 7. Run Tests
 
 ```bash
 # Unit + integration
-npx vitest run
+bun vitest run
 
 # E2E (requires seeded local Supabase)
-npx playwright test
+bun playwright test
 ```
+
+Key test files:
+- `__tests__/unit/task-completion-guard.test.ts` — once_per_day guard, undo guard
+- `__tests__/integration/tasks.test.ts` — once_per_day filter, undo RLS, reversal log
+- `__tests__/e2e/repeated-task.spec.ts` — daily count display, undo flow, once-per-day enforcement
+- `__tests__/e2e/admin-tasks.spec.ts` — once_per_day checkbox in create form
