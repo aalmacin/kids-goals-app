@@ -24,7 +24,7 @@
 
 **Purpose**: DB query needed by the Tasks page before user stories can be implemented
 
-- [ ] T001 Add `getCompletedOneTimeTasks(kidId, familyId)` function in `lib/db/tasks.ts` to return one-time tasks that have been completed by a kid, including completion metadata
+- [x] T001 Add `getCompletedOneTimeTasks(kidId, familyId)` function in `lib/db/tasks.ts` to return one-time tasks that have been completed by a kid, including completion metadata
 
 **Checkpoint**: Foundation ready — all user stories can proceed.
 
@@ -38,11 +38,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Wrap the repeated task button in an AlertDialog in `components/task-list/TaskItem.tsx` — match the existing one-time task AlertDialog pattern (lines 133-152), showing task name and points to be earned
+- [x] T002 [US1] Wrap the repeated task button in an AlertDialog in `components/task-list/TaskItem.tsx` — match the existing one-time task AlertDialog pattern (lines 133-152), showing task name and points to be earned
 
 ### E2E Tests for User Story 1
 
-- [ ] T003 [US1] E2E test: repeated task completion confirmation dialog in `__tests__/e2e/task-completion-confirmation.spec.ts` — verify dialog appears on tap, confirm completes task, cancel leaves state unchanged
+- [x] T003 [US1] E2E test: repeated task completion confirmation dialog in `__tests__/e2e/task-completion-confirmation.spec.ts` — verify dialog appears on tap, confirm completes task, cancel leaves state unchanged
 
 **Checkpoint**: Repeated task completion now requires confirmation.
 
@@ -56,11 +56,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Wrap the undo button in an AlertDialog in `components/task-list/TaskItem.tsx` — show task name and points to be deducted, confirm triggers `undoLastTaskCompletionAction`, cancel does nothing
+- [x] T004 [US2] Wrap the undo button in an AlertDialog in `components/task-list/TaskItem.tsx` — show task name and points to be deducted, confirm triggers `undoLastTaskCompletionAction`, cancel does nothing
 
 ### E2E Tests for User Story 2
 
-- [ ] T005 [US2] E2E test: task undo confirmation dialog in `__tests__/e2e/task-undo-confirmation.spec.ts` — verify dialog appears on undo tap, confirm reverses completion, cancel leaves state unchanged
+- [x] T005 [US2] E2E test: task undo confirmation dialog in `__tests__/e2e/task-undo-confirmation.spec.ts` — verify dialog appears on undo tap, confirm reverses completion, cancel leaves state unchanged
 
 **Checkpoint**: All task undo actions now require confirmation.
 
@@ -74,14 +74,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T006 [P] [US3] Filter `TaskSection` in `app/(dashboard)/page.tsx` to pass only repeated tasks — filter `availableTasks` by `taskType === 'repeated'` before passing to `TaskSection`
-- [ ] T007 [P] [US3] Add "Tasks" nav link for kid role in `components/navbar/NavBar.tsx` — add `<Link href="/tasks">Tasks</Link>` in the kid nav section
-- [ ] T008 [P] [US3] Add "Tasks" nav link for kid role in `components/navbar/MobileMenu.tsx` — add matching link in the mobile menu kid section
-- [ ] T009 [US3] Create one-time tasks page at `app/(dashboard)/tasks/page.tsx` — fetch one-time tasks using `getAvailableTasksForKid` (filtered to `one_time`) and completed one-time tasks using `getCompletedOneTimeTasks` from T001. Display available tasks using `TaskList`, and completed tasks in a separate "Completed" section below. Include empty states for both sections.
+- [x] T006 [P] [US3] Filter `TaskSection` in `app/(dashboard)/page.tsx` to pass only repeated tasks — filter `availableTasks` by `taskType === 'repeated'` before passing to `TaskSection`
+- [x] T007 [P] [US3] Add "Tasks" nav link for kid role in `components/navbar/NavBar.tsx` — add `<Link href="/tasks">Tasks</Link>` in the kid nav section
+- [x] T008 [P] [US3] Add "Tasks" nav link for kid role in `components/navbar/MobileMenu.tsx` — add matching link in the mobile menu kid section
+- [x] T009 [US3] Create one-time tasks page at `app/(dashboard)/tasks/page.tsx` — fetch one-time tasks using `getAvailableTasksForKid` (filtered to `one_time`) and completed one-time tasks using `getCompletedOneTimeTasks` from T001. Display available tasks using `TaskList`, and completed tasks in a separate "Completed" section below. Include empty states for both sections.
 
 ### E2E Tests for User Story 3
 
-- [ ] T010 [US3] E2E test: one-time tasks page and nav in `__tests__/e2e/one-time-tasks-page.spec.ts` — verify nav link visible for kid, Tasks page shows only one-time tasks, completed section shows completed tasks, Today page shows zero one-time tasks
+- [x] T010 [US3] E2E test: one-time tasks page and nav in `__tests__/e2e/one-time-tasks-page.spec.ts` — verify nav link visible for kid, Tasks page shows only one-time tasks, completed section shows completed tasks, Today page shows zero one-time tasks
 
 **Checkpoint**: One-time tasks fully separated onto dedicated page.
 
@@ -89,7 +89,7 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T011 Run quickstart.md verification steps to validate all flows end-to-end
+- [x] T011 Run quickstart.md verification steps to validate all flows end-to-end
 
 ---
 

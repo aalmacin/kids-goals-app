@@ -58,6 +58,13 @@ export function MobileMenu({ session, familyName }: MobileMenuProps) {
                 Today
               </Link>
               <Link
+                href="/tasks"
+                className="text-lg hover:text-indigo-600"
+                onClick={() => setOpen(false)}
+              >
+                Tasks
+              </Link>
+              <Link
                 href="/rewards"
                 className="text-lg hover:text-indigo-600"
                 onClick={() => setOpen(false)}

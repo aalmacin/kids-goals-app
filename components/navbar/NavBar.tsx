@@ -45,6 +45,9 @@ export function NavBar({ session, kidPoints, familyName }: NavBarProps) {
                 <Link href="/" className="hover:text-indigo-200 text-sm">
                   Today
                 </Link>
+                <Link href="/tasks" className="hover:text-indigo-200 text-sm">
+                  Tasks
+                </Link>
                 <Link href="/rewards" className="hover:text-indigo-200 text-sm">
                   Rewards
                 </Link>
