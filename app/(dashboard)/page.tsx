@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord } from '@/lib/db/day-records'
+import { getAvailableTasksForKid } from '@/lib/db/tasks'
 import { ChoreList } from '@/components/chore-list/ChoreList'
 import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
+import { TaskList } from '@/components/task-list/TaskList'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
 import { UndoEndDayButton } from '@/components/end-day/UndoEndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
@@ -42,7 +44,10 @@ export default async function DashboardPage({
   const today = todayInTimezone(familyTimezone)
   const date = params.date ?? today
 
-  const dayRecord = await getOrCreateDayRecord(kid.id, date)
+  const [dayRecord, availableTasks] = await Promise.all([
+    getOrCreateDayRecord(kid.id, date),
+    getAvailableTasksForKid(kid.id, kid.family_id, familyTimezone),
+  ])
 
   // Compute unavailable chores (assigned but schedule-blocked for this date)
   const dayOfWeek = dayOfWeekFromDate(date)
@@ -88,7 +93,7 @@ export default async function DashboardPage({
     })
 
   // Map DB completions to typed ChoreCompletion
-  const completions: ChoreCompletion[] = (dayRecord.chore_completions).map((c) => ({
+  const completions: ChoreCompletion[] = dayRecord.chore_completions.map((c) => ({
     id: c.id,
     dayRecordId: c.day_record_id,
     choreAssignmentId: c.chore_assignment_id,
@@ -156,6 +161,14 @@ export default async function DashboardPage({
 
       {/* Unavailable chores (schedule-blocked for today) */}
       <UnavailableChoreSection chores={unavailableChores} />
+
+      {/* Tasks */}
+      {availableTasks.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold text-gray-700">Tasks</h2>
+          <TaskList tasks={availableTasks} />
+        </div>
+      )}
 
       {/* Actions (only if not ended) */}
       {!isEnded && (

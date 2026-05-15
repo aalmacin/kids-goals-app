@@ -71,6 +71,32 @@ export type EffortLevel = {
   points: number
 }
 
+export type Task = {
+  id: string
+  familyId: string
+  name: string
+  points: number
+  taskType: 'one_time' | 'repeated'
+  maxCompletions: number | null
+  oncePerDay: boolean
+  deletedAt: string | null
+}
+
+export type TaskWithCounts = Task & {
+  todayCount: number
+  remaining: number | null
+  completedForNow: boolean
+}
+
+export type TaskCompletion = {
+  id: string
+  taskId: string
+  kidId: string
+  taskNameSnapshot: string
+  pointsSnapshot: number
+  completedAt: string
+}
+
 export type ActivityLogEntry = {
   id: string
   familyId: string
@@ -89,6 +115,8 @@ export type ActivityLogEntry = {
     | 'manual_adjustment'
     | 'chore_completion_reward'
     | 'chore_completion_reward_reversed'
+    | 'task_completed'
+    | 'task_completion_reversed'
   metadata: Record<string, unknown>
   pointsDelta: number | null
   createdAt: string

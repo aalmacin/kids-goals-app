@@ -25,6 +25,8 @@ const ACTION_LABELS: Record<ActivityLogEntry['actionType'], string> = {
   manual_adjustment: 'Manual Adjustment',
   chore_completion_reward: 'Chore Reward 🏆',
   chore_completion_reward_reversed: 'Chore Reward Reversed',
+  task_completed: 'Task Done ✓',
+  task_completion_reversed: 'Task Undone ↩',
 }
 
 interface ActivityLogTableProps {

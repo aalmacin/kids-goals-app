@@ -64,6 +64,9 @@ export default async function AdminLayout({
                 <Link href="/admin/rewards" className="hover:text-indigo-200 text-sm">
                   Rewards
                 </Link>
+                <Link href="/admin/tasks" className="hover:text-indigo-200 text-sm">
+                  Tasks
+                </Link>
               </>
             )}
             <form action={logout}>
