@@ -35,6 +35,22 @@ Soft-deletes a task (sets `deleted_at`).
 
 ---
 
+### `updateTaskAction(taskId: string, formData: FormData): Promise<void>`
+
+Updates an existing task's name and points. Type, once_per_day, and max_completions are immutable.
+
+**Input (FormData)**:
+| Field   | Type   | Required | Validation            |
+|---------|--------|----------|-----------------------|
+| `name`  | string | yes      | Non-empty after trim  |
+| `points`| number | yes      | Integer > 0           |
+
+**Side effects**: Updates `tasks.name` and `tasks.points`. Calls `revalidatePath('/admin/tasks')`.
+
+**Errors**: Throws if not authenticated parent, task not found, or validation fails. Does not accept or process type/once_per_day/max_completions fields.
+
+---
+
 ## Kid Actions — `lib/actions/tasks.ts`
 
 ### `completeTaskAction(taskId: string): Promise<void>`
@@ -93,6 +109,10 @@ Returns tasks visible to a kid with today's completion count:
 - Returns `todayCount` on each task (completions with `completed_at` >= start of today in family timezone)
 
 ### `createTask(familyId, name, points, taskType, maxCompletions, oncePerDay): Promise<void>`
+
+### `updateTask(taskId, name, points): Promise<void>`
+
+Updates only the name and points of an existing task. RLS ensures only the parent can perform this.
 
 ### `softDeleteTask(taskId): Promise<void>`
 

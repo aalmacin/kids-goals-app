@@ -123,6 +123,20 @@ export type TaskCompletion = {
 
 ---
 
+## Edit Constraints
+
+Tasks support limited editing after creation:
+
+| Field | Editable | Reason |
+|-------|----------|--------|
+| `name` | Yes | No downstream impact (snapshots preserve original) |
+| `points` | Yes | No downstream impact (snapshots preserve original) |
+| `task_type` | No | Changing type breaks completion invariants |
+| `once_per_day` | No | Changing daily limits mid-stream creates inconsistencies |
+| `max_completions` | No | Changing limits could invalidate existing completion counts |
+
+No new migration required — the existing `parent_all_tasks` RLS policy uses `FOR ALL` which covers UPDATE.
+
 ## State Transitions
 
 ### One-Time Task
