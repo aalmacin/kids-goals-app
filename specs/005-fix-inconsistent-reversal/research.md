@@ -1,43 +1,55 @@
 # Research: Fix Inconsistent Reversal
 
-## Reversal Strategy for Event-Sourced Points
+## Reversal Strategy — Already Implemented
 
-**Decision**: Insert compensating activity_log entries (opposite sign) rather than deleting original entries.
+The existing `undoEndDay` implementation uses compensating activity_log entries (opposite sign). This is correct for the event-sourcing model. The `recalculate_kid_points` trigger handles point recalculation automatically. Apply the same pattern for undo rest day.
 
-**Rationale**: The `recalculate_kid_points` trigger sums all `points_delta` for a kid. Inserting a compensating entry (e.g., `+penalty` to reverse a `-penalty`) maintains full audit trail and triggers automatic recalculation. Deleting entries would lose audit history and require manual point recalculation.
+## Action Types — Mostly Existing
 
-**Alternatives considered**:
-- Delete original entries: Loses audit trail, breaks event-sourcing principle.
-- Soft-delete with a flag: Adds complexity; trigger would need modification. Not worth it.
+Most reversal action types already exist in the DB constraint (via migrations 0010-0014):
+- `day_undone`, `penalty_reversed`, `effort_reversed`, `chore_completion_reward_reversed`, `task_completion_reversed`
 
-## New Activity Log Action Types
-
-**Decision**: Add three new action types: `end_day_reversed`, `rest_day_reversed`, `effort_reversed`.
-
-**Rationale**: Distinct action types make the activity log readable and filterable. Using generic "reversal" type would lose context about what was reversed.
-
-**Alternatives considered**:
-- Reuse existing types with negative deltas: Ambiguous — a `penalty_applied` with positive delta looks like a reward, not a reversal.
-- Single `reversal` type with metadata: Less queryable, harder to display in activity log UI.
+**Only `rest_day_reversed` needs to be added** for the new undo rest day flow.
 
 ## Undo Count Storage
 
-**Decision**: Add integer columns `undo_end_count` on `day_records` and `uncheck_count` on `chore_completions`, defaulting to 0.
+**Decision**: Add integer columns:
+- `day_records.undo_end_count` (default 0)
+- `day_records.undo_rest_day_count` (default 0)
+- `chore_completions.uncheck_count` (default 0)
 
-**Rationale**: Simple integer columns are the minimal change needed. Boolean would work for the current "once" requirement, but integer is more flexible if the limit changes later, and equally simple to implement.
+**Rationale**: Simple integer counters. The existing `undoEndDay` action works — just needs guard check and increment.
 
-**Alternatives considered**:
-- Boolean `has_been_undone`: Works but less flexible. Same storage cost.
-- Separate undo_history table: Over-engineered for a simple counter.
+## Current-Day Restriction for Undo End Day
 
-## Effort Level Clearing on Undo
+**Decision**: Add date check in `undoEndDay` comparing `day_records.date` against today (family timezone via `todayInTimezone`).
 
-**Decision**: Set `effort_level_id` to NULL on the `day_records` row when end-day is undone.
+**Rationale**: Existing implementation has no date restriction. Server-side check prevents retroactive manipulation. Family timezone helper already exists in `lib/chore-schedule.ts`.
 
-**Rationale**: The effort level selection is part of the end-day action. Clearing it ensures the kid selects fresh when re-ending, which is the desired behavior per clarification.
+## Undo Rest Day Implementation
 
-## Action Type Constraint Update
+**Decision**: New `undoRestDay` server action following the `undoEndDay` pattern:
+1. Check `undo_rest_day_count == 0` and `date == today`
+2. Set `is_rest_day = false`, increment `undo_rest_day_count`
+3. Insert `rest_day_reversed` activity_log entry with `points_delta: +100`
 
-**Decision**: A new migration will ALTER the `activity_log_action_type_check` constraint to include the three new action types.
+**Rationale**: Consistent with existing reversal pattern. The +100 triggers `recalculate_kid_points` automatically.
 
-**Rationale**: The existing CHECK constraint on `action_type` must be updated or inserts will fail. This follows the same pattern used in migration `0006_event_sourcing.sql`.
+## Chore Uncheck Limit
+
+**Decision**: Modify `toggleChore` to enforce uncheck limit:
+1. When unchecking (completed -> incomplete), check `uncheck_count == 0`
+2. If `uncheck_count > 0`, reject
+3. On successful uncheck, increment `uncheck_count`
+
+**Rationale**: The count is per-completion per-day (tied to `chore_completions` row). No impact on checking a chore.
+
+## Effort Level Clearing — Already Implemented
+
+The existing `undoEndDay` already sets `effort_level_id: null` when clearing `ended_at`. No additional work needed.
+
+## Button Styling
+
+**Decision**: Enlarge UndoEndDayButton and new UndoRestDayButton to match EndDayButton/RestDayButton sizing (rounded-xl, larger padding, bold font).
+
+**Rationale**: FR-014 requires kid-friendly prominent buttons. Current UndoEndDayButton uses `text-sm` — inconsistent with other action buttons.

@@ -1,8 +1,8 @@
 # Data Model: Fix Inconsistent Reversal
 
-## Schema Changes
+## Schema Changes (migration 0015)
 
-### day_records (modified)
+### day_records (add columns)
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -11,7 +11,7 @@
 
 **Constraints**: `CHECK (undo_end_count >= 0)`, `CHECK (undo_rest_day_count >= 0)`
 
-### chore_completions (modified)
+### chore_completions (add column)
 
 | Column | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -19,33 +19,40 @@
 
 **Constraints**: `CHECK (uncheck_count >= 0)`
 
-### activity_log (modified constraint)
+### activity_log (update constraint)
 
-Updated `action_type` CHECK to include:
-- `end_day_reversed` — logged when undo end-day is performed
-- `rest_day_reversed` — logged when undo rest-day is performed
-- `effort_reversed` — logged when effort reward is reversed as part of undo end-day
+Add `rest_day_reversed` to the existing `action_type` CHECK. All other reversal types already exist:
+- `day_undone` (exists)
+- `penalty_reversed` (exists)
+- `effort_reversed` (exists)
+- `chore_completion_reward_reversed` (exists)
+- `rest_day_reversed` (NEW)
+
+## Existing Schema Context
+
+Current action types in constraint (from migration 0014):
+`chore_completed`, `chore_unchecked`, `rest_day_purchased`, `reward_redeemed`, `day_ended`, `penalty_applied`, `effort_awarded`, `chore_assigned`, `chore_unassigned`, `manual_adjustment`, `day_undone`, `penalty_reversed`, `effort_reversed`, `chore_completion_reward`, `chore_completion_reward_reversed`, `task_completed`, `task_completion_reversed`
 
 ## State Transitions
 
 ### Day Record Lifecycle
 
 ```
-Created → [chores toggleable]
-  ↓ End Day
-Ended (ended_at set, penalties/effort applied)
-  ↓ Undo End Day (if undo_end_count == 0 AND date == today)
-Created (ended_at cleared, effort_level_id cleared, undo_end_count = 1, compensating log entries inserted)
-  ↓ End Day (again)
-Ended (penalties/effort re-applied fresh)
-  [No more undos — undo_end_count == 1]
+Created -> [chores toggleable]
+  | End Day
+Ended (ended_at set, penalties/effort/chore rewards applied)
+  | Undo End Day (if undo_end_count == 0 AND date == today)
+Created (ended_at cleared, effort_level_id cleared, undo_end_count = 1, compensating log entries)
+  | End Day (again)
+Ended (fresh penalties/effort/chore rewards)
+  [No more undos - undo_end_count == 1]
 ```
 
 ### Rest Day Lifecycle
 
 ```
-Normal Day → Declare Rest Day (is_rest_day = true, -100 pts logged)
-  ↓ Undo Rest Day (if undo_rest_day_count == 0 AND date == today)
+Normal Day -> Declare Rest Day (is_rest_day = true, -100 pts logged)
+  | Undo Rest Day (if undo_rest_day_count == 0 AND date == today)
 Normal Day (is_rest_day = false, undo_rest_day_count = 1, +100 pts compensating entry)
   [No more rest day undos]
 ```
@@ -54,11 +61,11 @@ Normal Day (is_rest_day = false, undo_rest_day_count = 1, +100 pts compensating 
 
 ```
 Incomplete (completed_at = null, uncheck_count = 0)
-  ↓ Complete
+  | Complete
 Completed (completed_at set)
-  ↓ Uncheck (if uncheck_count == 0)
+  | Uncheck (if uncheck_count == 0 AND day not ended)
 Incomplete (completed_at = null, uncheck_count = 1)
-  ↓ Complete (again)
+  | Complete (again)
 Completed + Locked (completed_at set, uncheck_count = 1, checkbox disabled for unchecking)
 ```
 

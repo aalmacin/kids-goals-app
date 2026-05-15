@@ -2,33 +2,36 @@
 
 ## Prerequisites
 
-- Node.js, pnpm
+- bun
 - Supabase CLI with local instance running (`supabase start`)
 - Environment variables configured (`.env.local`)
 
 ## Development Flow
 
 1. **Apply migration**: `supabase db push` or `supabase migration up` to add undo count columns
-2. **Regenerate types**: `supabase gen types typescript --local > lib/database.types.ts`
-3. **Run dev server**: `pnpm dev`
-4. **Run tests**: `pnpm vitest` (unit/integration), `pnpm playwright test` (E2E)
+2. **Regenerate types**: `bunx supabase gen types typescript --local > lib/database.types.ts`
+3. **Run dev server**: `bun dev`
+4. **Run tests**: `bun vitest` (unit/integration), `bun playwright test` (E2E)
 
 ## Key Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/migrations/NNNN_undo_counts.sql` | New migration adding columns and updating constraint |
+| `supabase/migrations/0015_undo_counts.sql` | New migration: add columns + update constraint |
 | `lib/database.types.ts` | Regenerated from schema |
-| `lib/types.ts` | Add undo count fields |
-| `lib/actions/day-records.ts` | Add `undoEndDay`, `undoRestDay` server actions; modify `toggleChore` |
-| `lib/db/day-records.ts` | Add DB helpers for undo operations |
-| `components/end-day/UndoEndDayButton.tsx` | New component |
-| `components/rest-day/UndoRestDayButton.tsx` | New component |
-| `components/chore-list/ChoreItem.tsx` | Lock checkbox when uncheck exhausted |
-| `app/(dashboard)/page.tsx` | Pass undo state to components |
+| `lib/types.ts` | Add undo count fields to DayRecord and ChoreCompletion |
+| `lib/actions/day-records.ts` | Add undo limit + current-day check to `undoEndDay`; add `undoRestDay`; add uncheck limit to `toggleChore` |
+| `lib/db/day-records.ts` | Add DB helpers for undo count queries |
+| `components/end-day/UndoEndDayButton.tsx` | Enlarge styling, accept eligibility props |
+| `components/rest-day/UndoRestDayButton.tsx` | New: undo rest day with confirmation dialog |
+| `components/rest-day/RestDayButton.tsx` | Show undo option when rest day active + eligible |
+| `components/chore-list/ChoreItem.tsx` | Lock checkbox when uncheck exhausted + completed |
+| `app/(dashboard)/page.tsx` | Compute undo eligibility, pass to components |
 
 ## Testing
 
-- Unit: `__tests__/unit/undo-logic.test.ts` — undo eligibility functions
-- Integration: `__tests__/integration/undo-*.test.ts` — server actions with Supabase
-- E2E: `__tests__/e2e/undo-*.spec.ts` — full browser flows
+- Unit: `__tests__/unit/undo-eligibility.test.ts` — undo eligibility pure functions
+- Integration: `__tests__/integration/undo-end-day.test.ts` — extend with limit tests
+- Integration: `__tests__/integration/undo-rest-day.test.ts` — new
+- Integration: `__tests__/integration/chore-uncheck-limit.test.ts` — new
+- E2E: `__tests__/e2e/undo-end-day.spec.ts`, `undo-rest-day.spec.ts`, `chore-uncheck-limit.spec.ts`

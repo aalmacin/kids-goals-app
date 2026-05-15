@@ -5,7 +5,18 @@
 
 ## Summary
 
-Add consistent one-undo-per-day reversal for three actions: ending a day, unchecking a chore completion, and undoing a rest day purchase. Each action tracks its undo count in the database and inserts reversal activity log entries to maintain the event-sourcing audit trail. Points are recalculated automatically via the existing `recalculate_kid_points` trigger.
+Add consistent one-undo-per-day limits to existing reversal actions and implement missing undo flows. The `undoEndDay` server action and `UndoEndDayButton` component already exist but lack the one-undo limit and current-day restriction. Chore unchecking is currently unlimited and needs a one-undo-per-day cap. Undo rest day is not yet implemented. Task undo is explicitly out of scope.
+
+## What Already Exists
+
+| Feature | Status | What's Missing |
+|---------|--------|----------------|
+| Undo End Day action | Implemented (`lib/actions/day-records.ts:undoEndDay`) | No undo count limit, no current-day check |
+| UndoEndDayButton | Implemented (`components/end-day/UndoEndDayButton.tsx`) | Small styling, always shown when ended |
+| Reversal action types | Migrated (`0010_undo_end_day.sql`) | None — `day_undone`, `penalty_reversed`, `effort_reversed`, `chore_completion_reward_reversed` all exist |
+| Chore toggle | Implemented (`toggleChore`) | No uncheck_count tracking or limit |
+| Undo rest day | Not implemented | Entire flow needed |
+| Task undo | Implemented (separate system) | Out of scope — no changes |
 
 ## Technical Context
 
@@ -15,9 +26,8 @@ Add consistent one-undo-per-day reversal for three actions: ending a day, unchec
 **Testing**: Vitest (unit/integration), Playwright (E2E)
 **Target Platform**: Web (PWA)
 **Project Type**: Web application (Next.js)
-**Performance Goals**: Standard web app (<3s page load)
-**Constraints**: All mutations via Server Actions (no API routes). Event-sourced points via activity_log trigger.
-**Scale/Scope**: Family-sized user base (small scale)
+**Package Manager**: bun
+**Constraints**: All mutations via Server Actions. Event-sourced points via activity_log trigger. No API routes for data.
 
 ## Constitution Check
 
@@ -25,11 +35,11 @@ Add consistent one-undo-per-day reversal for three actions: ending a day, unchec
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns | PASS | All mutations use Server Actions. No new API routes. CSP nonce unaffected. |
-| II. Supabase Patterns | PASS | New columns use RLS-protected tables. Points via activity_log trigger. No Edge Functions. |
-| III. TanStack First | PASS | No new client state beyond existing patterns. Dashboard is server-rendered. |
-| IV. shadcn Components First | PASS | Undo buttons use existing AlertDialog and Button from shadcn/ui. |
-| V. Test Coverage | PASS | Plan includes unit tests for undo logic, integration tests for server actions/RLS, and E2E tests for undo flows. |
+| I. Next.js Patterns | PASS | All mutations use Server Actions. No new API routes. |
+| II. Supabase Patterns | PASS | New columns on RLS-protected tables. Points via activity_log trigger. |
+| III. TanStack First | PASS | No new client state. Dashboard is server-rendered. |
+| IV. shadcn Components First | PASS | Undo buttons use existing AlertDialog + Button from shadcn/ui. |
+| V. Test Coverage | PASS | Unit tests for undo eligibility, integration tests for server actions, E2E for all undo flows. |
 
 ## Project Structure
 
@@ -44,39 +54,37 @@ specs/005-fix-inconsistent-reversal/
 └── tasks.md             # Phase 2 output (via /speckit-tasks)
 ```
 
-### Source Code (repository root)
+### Source Code Changes
 
 ```text
 supabase/migrations/
-└── NNNN_undo_counts.sql          # New migration: add undo count columns
+└── 0015_undo_counts.sql                    # New: add undo_end_count, undo_rest_day_count, uncheck_count; add rest_day_reversed action type
 
 lib/
-├── actions/day-records.ts         # Modified: add undoEndDay, undoRestDay actions; guard toggleChore with uncheck_count
-├── db/day-records.ts              # Modified: add undo query helpers
-├── types.ts                       # Modified: add undo count fields to DayRecord and ChoreCompletion types
-├── database.types.ts              # Regenerated: reflects new columns
-└── points.ts                      # No changes needed
+├── actions/day-records.ts                   # Modified: add undo limit + current-day checks to undoEndDay, add undoRestDay, add uncheck_count enforcement to toggleChore
+├── db/day-records.ts                        # Modified: add helpers for undo count queries
+├── types.ts                                 # Modified: add undo count fields to DayRecord and ChoreCompletion
+├── database.types.ts                        # Regenerated from schema
 
 components/
-├── end-day/EndDayButton.tsx       # Modified: show Undo End Day button when applicable
-├── end-day/UndoEndDayButton.tsx   # New: undo end-day with confirmation dialog
-├── rest-day/RestDayButton.tsx     # Modified: show Undo Rest Day button when applicable
-├── rest-day/UndoRestDayButton.tsx # New: undo rest-day with confirmation dialog
-└── chore-list/ChoreItem.tsx       # Modified: lock checkbox when uncheck_count >= 1 and completed
+├── end-day/UndoEndDayButton.tsx             # Modified: larger styling, conditionally rendered based on undo eligibility
+├── rest-day/RestDayButton.tsx               # Modified: show undo rest day option when active and eligible
+├── rest-day/UndoRestDayButton.tsx           # New: undo rest day with confirmation dialog
+├── chore-list/ChoreItem.tsx                 # Modified: lock checkbox when uncheck exhausted and completed
 
-app/(dashboard)/page.tsx           # Modified: pass undo state props to components
+app/(dashboard)/page.tsx                     # Modified: compute undo eligibility, pass props
 
 __tests__/
-├── unit/undo-logic.test.ts        # New: unit tests for undo eligibility logic
-├── integration/undo-end-day.test.ts   # New: integration tests for undo end-day action
-├── integration/undo-rest-day.test.ts  # New: integration tests for undo rest-day action
-├── integration/chore-uncheck-limit.test.ts # New: integration tests for chore uncheck limit
-├── e2e/undo-end-day.spec.ts      # New: E2E test for undo end-day flow
-├── e2e/undo-rest-day.spec.ts     # New: E2E test for undo rest-day flow
-└── e2e/chore-uncheck-limit.spec.ts # New: E2E test for chore uncheck limit
+├── unit/undo-eligibility.test.ts            # New: unit tests for undo eligibility logic
+├── integration/undo-end-day.test.ts         # Existing — extend with undo limit and current-day tests
+├── integration/undo-rest-day.test.ts        # New: integration tests for undo rest day
+├── integration/chore-uncheck-limit.test.ts  # New: integration tests for chore uncheck limit
+├── e2e/undo-end-day.spec.ts                 # New: E2E for undo end day (limit + current-day restriction)
+├── e2e/undo-rest-day.spec.ts               # New: E2E for undo rest day flow
+└── e2e/chore-uncheck-limit.spec.ts         # New: E2E for chore uncheck limit
 ```
 
-**Structure Decision**: Follows existing project layout. New components are co-located with their related existing components (end-day/, rest-day/). Undo buttons are separate components to keep EndDayButton and RestDayButton focused.
+**Structure Decision**: Follows existing project layout. New UndoRestDayButton is co-located with RestDayButton in `components/rest-day/`.
 
 ## Complexity Tracking
 
