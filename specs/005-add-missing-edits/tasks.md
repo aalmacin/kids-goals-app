@@ -23,8 +23,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Create EditChoreDialog client component with pre-populated form fields in components/edit-chore-dialog.tsx
-- [ ] T002 [US1] Add EditChoreDialog to chore list items with edit button alongside delete button in app/(admin)/admin/chores/page.tsx
+- [x] T001 [US1] Create EditChoreDialog client component with pre-populated form fields in components/edit-chore-dialog.tsx
+- [x] T002 [US1] Add EditChoreDialog to chore list items with edit button alongside delete button in app/(admin)/admin/chores/page.tsx
 
 **Checkpoint**: Chore editing should be fully functional. Verify by editing a chore's name and seeing the change reflected in the list.
 
@@ -38,8 +38,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [P] [US2] Create EditEffortLevelDialog client component with pre-populated form fields in components/edit-effort-level-dialog.tsx
-- [ ] T004 [US2] Add EditEffortLevelDialog to effort level items with edit button alongside delete button in app/(admin)/admin/effort/page.tsx
+- [x] T003 [P] [US2] Create EditEffortLevelDialog client component with pre-populated form fields in components/edit-effort-level-dialog.tsx
+- [x] T004 [US2] Add EditEffortLevelDialog to effort level items with edit button alongside delete button in app/(admin)/admin/effort/page.tsx
 
 **Checkpoint**: Effort level editing should be fully functional. Verify by editing a level's points and seeing the change reflected in the list.
 
