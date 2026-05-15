@@ -40,6 +40,7 @@ A child sees a repeated task in their task list. They click it and immediately r
 2. **Given** a child completes a repeated task, **When** they view the activity log, **Then** each completion appears as a separate entry with its awarded points.
 3. **Given** a repeated task is configured with a maximum completion count of N, **When** the child has completed it N times, **Then** the task is no longer available.
 4. **Given** a repeated task has no configured maximum, **When** the child completes it many times, **Then** it always remains available.
+5. **Given** a child has completed a repeated task today, **When** they click undo, **Then** the most recent completion is reversed, points are deducted, and the task becomes available again.
 
 ---
 
@@ -58,6 +59,8 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 3. **Given** a parent is creating a task, **When** they select "repeated" and optionally set a maximum completion count, **Then** the task is saved accordingly.
 4. **Given** a parent leaves the max completion count blank for a repeated task, **When** the task is saved, **Then** the task has no limit (unlimited completions).
 5. **Given** a parent sets a maximum completion count greater than zero, **When** the task is saved, **Then** the limit is enforced for the child.
+6. **Given** a parent is viewing the task list, **When** they click edit on an existing task, **Then** they can update only the task's name and point value (type, once_per_day, and max completions are not editable).
+7. **Given** a parent edits a task's point value, **When** the task is saved, **Then** future completions use the new point value; existing activity log entries retain their original snapshot values.
 
 ---
 
@@ -67,6 +70,7 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 - What happens when a repeated task's completion count reaches the configured maximum? The task becomes unavailable.
 - What happens if a parent sets a maximum completion count of 0 or a negative number? The system should treat this as invalid input and prevent saving.
 - What happens if a one-time task is deleted after being completed? The activity log entry should remain; the task should not reappear.
+- What happens if a parent tries to change a task's type, once_per_day, or max completions? These fields are immutable after creation; only name and points can be edited.
 
 ## Requirements *(mandatory)*
 
@@ -82,9 +86,10 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 - **FR-008**: When a repeated task's maximum completion count is reached, the task MUST no longer be available to the child.
 - **FR-009**: Parents/admins MUST be able to create tasks and specify: task type (one-time or repeated), name, point value, and (for repeated tasks) optional maximum completion count.
 - **FR-010**: System MUST prevent saving a repeated task with a maximum completion count of zero or a negative number.
+- **FR-016**: Parents/admins MUST be able to edit existing tasks' name and point value only. Type, once_per_day, and max completion count are immutable after creation. Edits MUST NOT retroactively change existing activity log entries (snapshot values are preserved).
 - **FR-011**: The admin navigation bar MUST include a "Tasks" link that navigates to the task management page.
 - **FR-012**: Completed tasks (one-time, once-per-day, or max-completions reached) MUST remain visible on the dashboard until end of day with a completed state and an undo button.
-- **FR-013**: Undo MUST be available for all task types (one-time and repeated) for same-day completions only.
+- **FR-013**: Undo MUST be available for all task types (one-time and repeated) for same-day completions only. Undo reverses the most recent completion for that task. Task undo is independent from the "undo end day" operation (which only affects chores and efforts).
 - **FR-014**: Repeated tasks MUST support a "once per day" option that limits the task to one completion per calendar day.
 - **FR-015**: The task list MUST display daily completion counts for repeated tasks and group tasks by type (one-time vs repeatable).
 
@@ -104,11 +109,21 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 - **SC-004**: All task completions (one-time and repeated) appear in the activity log immediately after completion.
 - **SC-005**: Parents can create a task with type, point value, and optional limit in under 2 minutes.
 
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: Should task editing be in scope (US3 mentions "edits" but no scenarios exist)? → A: Yes — parents can update name and points only.
+- Q: FR-014 (once_per_day) contradicts assumption about no per-day restriction. Which is correct? → A: Keep once_per_day; remove contradicting assumption.
+- Q: How should undo work for repeated task completions? → A: Tasks have their own per-completion undo (undo last today's completion). Day undo only involves chores and efforts, not tasks.
+- Q: What fields are editable on an existing task? → A: Only name and points. Type, once_per_day, and max completions are immutable after creation.
+- Q: How is once_per_day configured during task creation? → A: Existing creation UI (checkbox on repeated tasks) is correct — no changes needed.
+
 ## Assumptions
 
 - Children are already authenticated and associated with a profile before viewing tasks.
 - The existing points/rewards system will be used to credit points upon task completion.
 - The activity log already exists and supports appending new completion entries.
 - Task management (create/edit/delete) is performed by parents or admins, not children.
-- Repeated tasks do not have a per-day restriction unless a maximum completion count is set; the limit applies to total completions, not daily completions.
+- Repeated tasks support an optional "once per day" flag that limits completions to one per calendar day (timezone-aware). The max completion count, when set, applies to total completions across all days.
 - The confirmation prompt for one-time tasks is a simple in-app dialog (not a separate page).
