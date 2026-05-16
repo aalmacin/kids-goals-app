@@ -16,7 +16,7 @@ Add confirmation dialogs for repeated task completions and all task undo actions
 **Target Platform**: Web (PWA)
 **Project Type**: Web application (Next.js)
 **Performance Goals**: Standard web app — confirmation interactions under 2 seconds
-**Constraints**: Must use existing AlertDialog pattern, Server Actions for mutations
+**Constraints**: Must use existing AlertDialog pattern, Server Actions for mutations; completion trigger MUST use `div[role="button"]` (not `<button>`) to avoid HTML-invalid nested buttons when the undo button is present inside the card
 **Scale/Scope**: Small feature — 2 new dialogs, 1 new page, nav bar updates
 
 ## Constitution Check

@@ -12,7 +12,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { completeTaskAction, undoLastTaskCompletionAction } from '@/lib/actions/tasks'
 import { Check, Repeat, Undo2 } from 'lucide-react'
@@ -26,6 +25,7 @@ interface TaskItemProps {
 export function TaskItem({ task, todayCount }: TaskItemProps) {
   const [isPending, startTransition] = useTransition()
   const [isUndoPending, startUndoTransition] = useTransition()
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [undoDialogOpen, setUndoDialogOpen] = useState(false)
 
   const { completedForNow } = task
@@ -34,6 +34,7 @@ export function TaskItem({ task, todayCount }: TaskItemProps) {
 
   function handleComplete() {
     if (completedForNow) return
+    setCompleteDialogOpen(false)
     startTransition(async () => {
       await completeTaskAction(task.id)
     })
@@ -155,42 +156,40 @@ export function TaskItem({ task, todayCount }: TaskItemProps) {
       {/* Completion UI */}
       {completedForNow ? (
         card
-      ) : isOneTime ? (
-        <AlertDialog>
-          <AlertDialogTrigger className="w-full text-left" disabled={isPending}>
-            {card}
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Complete &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You will earn <strong>{task.points} points</strong>. This task can only be completed once.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleComplete}>Complete Task</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       ) : (
-        <AlertDialog>
-          <AlertDialogTrigger className="w-full text-left" disabled={isPending}>
+        <>
+          {/* div[role="button"] avoids <button> inside <button> when the undo button is visible inside card */}
+          <div
+            role="button"
+            tabIndex={isPending ? -1 : 0}
+            aria-disabled={isPending}
+            className="w-full text-left cursor-pointer"
+            onClick={() => { if (!isPending) setCompleteDialogOpen(true) }}
+            onKeyDown={(e) => {
+              if (!isPending && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                setCompleteDialogOpen(true)
+              }
+            }}
+          >
             {card}
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Complete &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You will earn <strong>{task.points} points</strong>.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleComplete}>Complete Task</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </div>
+          <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Complete &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will earn <strong>{task.points} points</strong>.
+                  {isOneTime && ' This task can only be completed once.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleComplete}>Complete Task</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
     </>
   )
