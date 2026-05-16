@@ -3,14 +3,14 @@
 **Input**: Design documents from `specs/005-fix-inconsistent-reversal/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, quickstart.md
 
-**Tests**: E2E tests are MANDATORY (Principle V). Unit and integration tests included where business logic and server actions require coverage.
+**Tests**: E2E tests are MANDATORY (Principle V). Unit tests included where business logic requires coverage.
 
 **Organization**: Tasks grouped by user story for independent implementation and testing.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story (US1, US2, US3)
+- **[Story]**: Which user story (US1, US2, US3, US4)
 - Exact file paths included
 
 ---
@@ -103,10 +103,33 @@
 
 ---
 
-## Phase 6: Polish & Cross-Cutting Concerns
+## Phase 6: User Story 4 — Disable Effort (Task) Feature After Ending Day (Priority: P4)
+
+**Goal**: Once a kid ends their day, the task section is hidden and task completion is blocked server-side. End Day is a complete terminal action for all daily point-earning activities.
+
+**Independent Test**: End the day, verify the Tasks section is no longer visible on the dashboard. Attempt to complete a task via the server action directly — verify it is rejected with "Cannot complete tasks after ending the day".
+
+### Implementation for User Story 4
+
+- [ ] T025 [P] [US4] Fix `canUndoRestDay` in `lib/undo-eligibility.ts` — add `&& dayRecord.endedAt === null` condition so eligibility is false when the day has ended (spec: "Undo rest day is only available before the day is ended")
+- [ ] T026 [P] [US4] Add server-side guard to `completeTaskAction` in `lib/actions/tasks.ts` — after getting `kid`, fetch today's `day_records` row (`date` = today in family timezone) and throw `'Cannot complete tasks after ending the day'` if `ended_at` is non-null; reuse `todayInTimezone` from `lib/chore-schedule.ts` and `getFamilyTimezone` already in the file
+- [ ] T027 [US4] Update `components/task-list/TaskSection.tsx` — add `isEnded: boolean` prop; return `null` when `isEnded` is true (entire section hidden when day is ended)
+- [ ] T028 [US4] Update `app/(dashboard)/page.tsx` — pass `isEnded={isEnded}` to `TaskSection` component
+
+### Tests for User Story 4
+
+- [ ] T029 [P] [US4] Add unit test in `__tests__/unit/undo-eligibility.test.ts` — extend existing suite with cases for `canUndoRestDay` when `endedAt` is set: verify returns `false` even when `isRestDay=true`, `undoRestDayCount=0`, and `date==today`
+- [ ] T030 [P] [US4] Write E2E test in `__tests__/e2e/task-locked-after-end-day.spec.ts` — kid completes a repeated task (verifying it appears), then ends the day; verify the Tasks section is no longer visible; undo end day; verify Tasks section reappears
+
+**Checkpoint**: After ending the day, the Tasks section is hidden and task completion is blocked server-side
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
 
 - [x] T023 Update `components/activity-log/ActivityLogTable.tsx` — add display labels for `rest_day_reversed` action type
 - [x] T024 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions
+- [ ] T031 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions after US4 changes
 
 ---
 
@@ -116,48 +139,37 @@
 
 - **Phase 1 (Setup)**: No dependencies — start immediately
 - **Phase 2 (Foundational)**: Depends on Phase 1
-- **Phases 3-5 (User Stories)**: All depend on Phase 2. Can proceed in priority order or in parallel.
-- **Phase 6 (Polish)**: Depends on all user stories
+- **Phases 3–5 (US1–US3)**: All depend on Phase 2. Complete — no further work needed.
+- **Phase 6 (US4)**: Depends on Phase 2 only. No dependencies on US1–US3.
+- **Phase 7 (Polish)**: Depends on Phase 6
 
-### User Story Dependencies
+### User Story 4 Task Dependencies
 
-- **US1 (Undo End Day)**: Depends on Phase 2 only — no cross-story dependencies
-- **US2 (Chore Uncheck Limit)**: Depends on Phase 2 only — independent from US1
-- **US3 (Undo Rest Day + Visual Consistency)**: Depends on Phase 2 only — independent from US1/US2
-
-### Within Each User Story
-
-- Implementation tasks before test tasks (tests validate implementation)
-- Server action changes before component changes
-- Page-level wiring after component changes
+- T025 and T026 can run in parallel (different files, no shared dependencies)
+- T027 depends on nothing (self-contained component change)
+- T028 depends on T027 (must add prop to TaskSection before passing it from page)
+- T029 can run in parallel with T025–T028 (test-only file)
+- T030 depends on T025–T028 (E2E validates full stack)
 
 ### Parallel Opportunities
 
-- T004, T005, T006 can all run in parallel (Phase 2)
-- T010, T011 can run in parallel (US1 tests)
-- T015, T016 can run in parallel (US2 tests)
-- T021, T022 can run in parallel (US3 tests)
-- US1, US2, US3 can run in parallel after Phase 2
+- T025, T026, T027, T029 can all run in parallel
+- T028 after T027
+- T030 after T025–T028
+- T031 after T030
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
+### MVP (User Story 4 only)
 
-1. Complete Phase 1: Setup (migration + types)
-2. Complete Phase 2: Foundational (eligibility logic + DB helpers)
-3. Complete Phase 3: US1 — Undo End Day with limits
-4. **STOP and VALIDATE**: Test undo end day independently
-5. Deploy/demo if ready
-
-### Incremental Delivery
-
-1. Setup + Foundational → Foundation ready
-2. US1 (Undo End Day) → Test → Deploy (MVP!)
-3. US2 (Chore Uncheck Limit) → Test → Deploy
-4. US3 (Undo Rest Day) → Test → Deploy
-5. Polish → Final validation
+1. Complete T025 + T026 in parallel — eligibility fix + server-side guard
+2. Complete T027 — update TaskSection component
+3. Complete T028 — wire isEnded in page
+4. Complete T029 + T030 in parallel — unit test + E2E
+5. **STOP and VALIDATE**: `bun vitest` + `bun playwright test`
+6. Complete T031 — final regression check
 
 ---
 
@@ -165,6 +177,6 @@
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story
-- Each user story independently testable
+- T025–T031 are the only remaining tasks (T001–T024 are complete)
+- Task undo (`undoLastTaskCompletionAction`) does NOT need a day-ended guard — if the task section is hidden, no undo UI is accessible; server-side task completion block is sufficient
 - Commit after each task or logical group
-- Task undo is explicitly OUT OF SCOPE — no changes to task system
