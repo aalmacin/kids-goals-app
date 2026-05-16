@@ -61,7 +61,7 @@ components/
 ├── task-list/
 │   ├── TaskItem.tsx          # MODIFY: wrap repeated tasks in AlertDialog, wrap undo in AlertDialog
 │   ├── TaskList.tsx           # No changes needed
-│   └── TaskSection.tsx        # MODIFY: filter to repeated tasks only on Today page
+│   └── TaskSection.tsx        # No changes needed — filtering done in page.tsx before passing tasks
 __tests__/
 ├── e2e/                      # E2E tests for new flows
 └── unit/                     # Unit tests if applicable

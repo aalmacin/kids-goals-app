@@ -17,8 +17,7 @@ bun run dev
 | File | Change |
 |------|--------|
 | `components/task-list/TaskItem.tsx` | Wrap repeated task in AlertDialog; wrap undo button in AlertDialog |
-| `components/task-list/TaskSection.tsx` | Accept `filterType` prop to show only repeated tasks on Today page |
-| `app/(dashboard)/page.tsx` | Filter to pass only repeated tasks to TaskSection |
+| `app/(dashboard)/page.tsx` | Filter `availableTasks` to `taskType === 'repeated'` before passing to TaskSection |
 | `app/(dashboard)/tasks/page.tsx` | NEW — one-time tasks page with available + completed sections |
 | `components/navbar/NavBar.tsx` | Add "Tasks" link for kid role |
 | `components/navbar/MobileMenu.tsx` | Add "Tasks" link for kid role |
@@ -30,6 +29,8 @@ bun run dev
 bun run test           # Unit/integration tests
 bunx playwright test   # E2E tests
 ```
+
+> **E2E requirement**: Scenario-specific E2E tests (task confirmation dialogs, undo flow, Tasks page nav) require a seeded local Supabase instance with at least one kid account, one repeated task, and one one-time task. Tests without seeded data are skipped. Run `bunx supabase db reset --local` with seed data before running Playwright.
 
 ## Verification
 
