@@ -42,13 +42,6 @@ export function AdminMobileMenu({ familyExists }: AdminMobileMenuProps) {
                 Chores
               </Link>
               <Link
-                href="/admin/effort"
-                className="text-lg hover:text-indigo-600"
-                onClick={() => setOpen(false)}
-              >
-                Effort
-              </Link>
-              <Link
                 href="/admin/family"
                 className="text-lg hover:text-indigo-600"
                 onClick={() => setOpen(false)}

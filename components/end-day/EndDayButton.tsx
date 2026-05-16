@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,24 +12,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { EffortDropdown } from '@/components/effort-dropdown/EffortDropdown'
 import { endDay } from '@/lib/actions/day-records'
-import type { EffortLevel } from '@/lib/types'
 
 interface EndDayButtonProps {
   dayRecordId: string
-  effortLevels: EffortLevel[]
   allChoresDone: boolean
 }
 
-export function EndDayButton({ dayRecordId, effortLevels, allChoresDone }: EndDayButtonProps) {
-  const [selectedEffort, setSelectedEffort] = useState<string | null>(null)
+export function EndDayButton({ dayRecordId, allChoresDone }: EndDayButtonProps) {
   const [isPending, startTransition] = useTransition()
 
   function handleConfirm() {
     startTransition(async () => {
-      await endDay(dayRecordId, selectedEffort !== null ? selectedEffort : undefined)
+      await endDay(dayRecordId)
     })
   }
 
@@ -45,20 +40,9 @@ export function EndDayButton({ dayRecordId, effortLevels, allChoresDone }: EndDa
         <AlertDialogHeader>
           <AlertDialogTitle>End the Day?</AlertDialogTitle>
           <AlertDialogDescription>
-            Incomplete chores will be penalized.
+            {allChoresDone ? 'Great job completing all your chores!' : 'Incomplete chores will be penalized.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
-
-        {allChoresDone && effortLevels.length > 0 && (
-          <div className="my-2">
-            <EffortDropdown
-              effortLevels={effortLevels}
-              value={selectedEffort ?? ''}
-              onChange={setSelectedEffort}
-            />
-          </div>
-        )}
-
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction

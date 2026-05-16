@@ -2,7 +2,9 @@
 
 **Feature Branch**: `005-chore-reward-points`
 **Created**: 2026-05-06
-**Status**: Draft
+**Status**: Complete
+
+> **Subsequent removals (2026-05-16)**: Undo End Day was removed — FR-011, FR-013 (chore reward reversal on undo), and the undo end day flow no longer apply. The Effort Levels feature (FR-014, effort dropdown bug) was also removed entirely.
 
 ## Clarifications
 

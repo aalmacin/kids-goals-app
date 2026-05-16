@@ -2,15 +2,6 @@
 
 ## Schema Changes (migration 0015)
 
-### day_records (add columns)
-
-| Column | Type | Default | Description |
-|--------|------|---------|-------------|
-| undo_end_count | integer NOT NULL | 0 | Times end-day has been undone (max 1) |
-| undo_rest_day_count | integer NOT NULL | 0 | Times rest-day has been undone (max 1) |
-
-**Constraints**: `CHECK (undo_end_count >= 0)`, `CHECK (undo_rest_day_count >= 0)`
-
 ### chore_completions (add column)
 
 | Column | Type | Default | Description |
@@ -22,39 +13,30 @@
 ### activity_log (update constraint)
 
 Add `rest_day_reversed` to the existing `action_type` CHECK. All other reversal types already exist:
-- `day_undone` (exists)
-- `penalty_reversed` (exists)
-- `effort_reversed` (exists)
+- `day_undone` (exists — historical, no longer produced)
+- `penalty_reversed` (exists — historical, no longer produced)
+- `effort_reversed` (exists — historical, no longer produced)
 - `chore_completion_reward_reversed` (exists)
-- `rest_day_reversed` (NEW)
+- `rest_day_reversed` (added in migration 0015 — historical, no longer produced)
+
+> **Note**: `undo_end_count` and `undo_rest_day_count` were added to `day_records` in migration 0015 but are no longer used — Undo End Day and Undo Rest Day were removed. The columns remain in the schema.
 
 ## Existing Schema Context
 
-Current action types in constraint (from migration 0014):
-`chore_completed`, `chore_unchecked`, `rest_day_purchased`, `reward_redeemed`, `day_ended`, `penalty_applied`, `effort_awarded`, `chore_assigned`, `chore_unassigned`, `manual_adjustment`, `day_undone`, `penalty_reversed`, `effort_reversed`, `chore_completion_reward`, `chore_completion_reward_reversed`, `task_completed`, `task_completion_reversed`
+Current action types in constraint (from migration 0015):
+`chore_completed`, `chore_unchecked`, `rest_day_purchased`, `reward_redeemed`, `day_ended`, `penalty_applied`, `effort_awarded`, `chore_assigned`, `chore_unassigned`, `manual_adjustment`, `day_undone`, `penalty_reversed`, `effort_reversed`, `chore_completion_reward`, `chore_completion_reward_reversed`, `task_completed`, `task_completion_reversed`, `rest_day_reversed`
+
+> **Note**: `effort_awarded` remains in the constraint for historical log entries; the Effort Levels feature has been removed.
 
 ## State Transitions
 
 ### Day Record Lifecycle
 
 ```
-Created -> [chores toggleable]
+Created -> [chores toggleable, tasks visible]
   | End Day
-Ended (ended_at set, penalties/effort/chore rewards applied)
-  | Undo End Day (if undo_end_count == 0 AND date == today)
-Created (ended_at cleared, effort_level_id cleared, undo_end_count = 1, compensating log entries)
-  | End Day (again)
-Ended (fresh penalties/effort/chore rewards)
-  [No more undos - undo_end_count == 1]
-```
-
-### Rest Day Lifecycle
-
-```
-Normal Day -> Declare Rest Day (is_rest_day = true, -100 pts logged)
-  | Undo Rest Day (if undo_rest_day_count == 0 AND date == today)
-Normal Day (is_rest_day = false, undo_rest_day_count = 1, +100 pts compensating entry)
-  [No more rest day undos]
+Ended (ended_at set, penalties/chore rewards applied, tasks hidden)
+  [Terminal — cannot be undone. Past days accessible via Calendar page.]
 ```
 
 ### Chore Completion Lifecycle
@@ -73,6 +55,4 @@ Completed + Locked (completed_at set, uncheck_count = 1, checkbox disabled for u
 
 | Action | Eligible When |
 |--------|---------------|
-| Undo End Day | `ended_at IS NOT NULL` AND `undo_end_count == 0` AND `date == today` |
-| Undo Rest Day | `is_rest_day == true` AND `undo_rest_day_count == 0` AND `date == today` |
 | Uncheck Chore | `completed_at IS NOT NULL` AND `uncheck_count == 0` AND day not ended |

@@ -55,9 +55,6 @@ export default async function AdminLayout({
                 <Link href="/admin/chores" className="hover:text-indigo-200 text-sm">
                   Chores
                 </Link>
-                <Link href="/admin/effort" className="hover:text-indigo-200 text-sm">
-                  Effort
-                </Link>
                 <Link href="/admin/family" className="hover:text-indigo-200 text-sm">
                   Family
                 </Link>

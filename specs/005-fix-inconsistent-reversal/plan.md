@@ -2,13 +2,13 @@
 
 **Branch**: `005-fix-inconsistent-reversal` | **Date**: 2026-05-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/005-fix-inconsistent-reversal/spec.md`
-**User guidance**: Disable effort feature after ending the day
+**User guidance**: Chore uncheck limits, hide tasks after End Day, remove Undo Day and Effort Levels
 
 ## Summary
 
-Fix inconsistent reversal behavior across chore unchecking, end-day, and rest-day undo actions (one-undo-per-day rule). Additionally, disable the task (effort) feature after a kid ends the day, making End Day a complete terminal action for all daily point-earning activities.
+Fix inconsistent reversal behavior: limit chore unchecking to once per day, and make End Day a complete terminal action (tasks hidden, completion blocked server-side). The Undo End Day, Undo Rest Day, and Effort Levels features were removed on 2026-05-16.
 
-The core reversal work (T001–T024) is fully implemented. This plan documents the remaining gap: tasks remain interactive after ending the day, allowing kids to earn extra points after declaring their day done.
+All implementation is complete (T001–T031).
 
 ## Technical Context
 
@@ -49,18 +49,18 @@ specs/005-fix-inconsistent-reversal/
 └── tasks.md             # Phase 2 output (existing — T001–T024 all complete)
 ```
 
-### Source Code (relevant files)
+### Source Code (key files)
 
 ```text
-app/(dashboard)/page.tsx                     # Pass isEnded to TaskSection
-components/task-list/TaskSection.tsx         # Accept isEnded; hide when ended
-lib/actions/tasks.ts                         # Add day-ended guard to completeTaskAction
-lib/undo-eligibility.ts                      # Fix canUndoRestDay to include !endedAt
-__tests__/unit/undo-eligibility.test.ts      # Add test for canUndoRestDay when ended
-__tests__/e2e/task-locked-after-end-day.spec.ts  # New E2E test
+app/(dashboard)/page.tsx                          # Pass isEnded to TaskSection; removed effort fetching
+components/task-list/TaskSection.tsx              # Accept isEnded; hide when ended
+lib/actions/tasks.ts                              # Add day-ended guard to completeTaskAction
+lib/undo-eligibility.ts                           # canUncheckChore only (undo day functions removed)
+__tests__/unit/undo-eligibility.test.ts           # canUncheckChore tests only
+__tests__/e2e/task-locked-after-end-day.spec.ts   # E2E: tasks hidden after End Day
 ```
 
-**Structure Decision**: Single Next.js project. No new files except the E2E test. All changes are additive to existing files.
+**Removed files**: `UndoEndDayButton.tsx`, `UndoRestDayButton.tsx`, `EffortDropdown.tsx`, `lib/actions/effort-levels.ts`, `lib/db/effort-levels.ts`, `app/(admin)/admin/effort/`, undo day E2E and integration tests.
 
 ---
 
@@ -68,36 +68,13 @@ __tests__/e2e/task-locked-after-end-day.spec.ts  # New E2E test
 
 ### Finding 1 — TaskSection remains interactive after ending the day
 
-`app/(dashboard)/page.tsx` renders `<TaskSection>` unconditionally — outside the `{!isEnded}` block. `TaskSection` has no `isEnded` prop. `TaskItem` calls `completeTaskAction` and `undoLastTaskCompletionAction` with no day-ended guard.
+`app/(dashboard)/page.tsx` renders `<TaskSection>` unconditionally — outside the `{!isEnded}` block. `TaskSection` has no `isEnded` prop. `TaskItem` calls `completeTaskAction` with no day-ended guard.
 
-**Impact**: Kids can complete repeated tasks and undo task completions after declaring their day done. This is inconsistent with End Day acting as a terminal daily action.
-
-**Fix**: Pass `isEnded` to `TaskSection`; hide the section when the day is ended. Add server-side guard in `completeTaskAction` (and optionally `undoLastTaskCompletionAction`) that checks today's `day_records.ended_at`.
-
-### Finding 2 — Effort dropdown (EffortDropdown) is already correctly disabled
-
-`EndDayButton` (which contains `EffortDropdown`) lives inside `{!isEnded}` in `page.tsx`. No effort selection UI is shown after ending. This is correct; no fix needed.
-
-### Finding 3 — canUndoRestDay missing !endedAt guard
-
-```ts
-export function canUndoRestDay(dayRecord: DayRecord, today: string): boolean {
-  return (
-    dayRecord.isRestDay &&
-    dayRecord.undoRestDayCount === 0 &&
-    dayRecord.date === today
-    // missing: && dayRecord.endedAt === null
-  )
-}
-```
-
-The spec states: "Undo rest day is only available before the day is ended." The UI correctly hides it (inside `!isEnded`), but the eligibility function itself is inconsistent with the spec. Any future caller not wrapped in `!isEnded` would get a wrong result.
-
-**Fix**: Add `&& dayRecord.endedAt === null` to `canUndoRestDay`.
+**Fix**: Pass `isEnded` to `TaskSection`; hide the section when the day is ended. Add server-side guard in `completeTaskAction` that checks today's `day_records.ended_at`.
 
 ### Decision: No schema changes required
 
-All guards use the existing `day_records.ended_at` column. No migration needed.
+All guards use the existing `day_records.ended_at` column.
 
 ---
 
@@ -105,30 +82,15 @@ All guards use the existing `day_records.ended_at` column. No migration needed.
 
 ### Data model changes
 
-None. `day_records.ended_at` is the existing signal for all new guards.
+None. `day_records.ended_at` is the existing signal for all guards.
 
 ### Contracts
 
-No new server action signatures. `completeTaskAction(taskId: string)` is unchanged externally; the guard is internal.
+`completeTaskAction(taskId: string)` — unchanged signature; guard is internal. `endDay(dayRecordId: string)` — `effortLevelId` parameter removed.
 
 ### Implementation design
 
-#### 1. `lib/undo-eligibility.ts`
-
-Add `&& dayRecord.endedAt === null` to `canUndoRestDay`:
-
-```ts
-export function canUndoRestDay(dayRecord: DayRecord, today: string): boolean {
-  return (
-    dayRecord.isRestDay &&
-    dayRecord.undoRestDayCount === 0 &&
-    dayRecord.date === today &&
-    dayRecord.endedAt === null
-  )
-}
-```
-
-#### 2. `lib/actions/tasks.ts` — `completeTaskAction`
+#### 1. `lib/actions/tasks.ts` — `completeTaskAction`
 
 After fetching the kid, check today's day record:
 
@@ -145,7 +107,7 @@ const { data: todayRecord } = await supabase
 if (todayRecord?.ended_at) throw new Error('Cannot complete tasks after ending the day')
 ```
 
-#### 3. `components/task-list/TaskSection.tsx`
+#### 2. `components/task-list/TaskSection.tsx`
 
 Add `isEnded: boolean` prop. Return `null` when `isEnded`:
 
@@ -161,17 +123,13 @@ export function TaskSection({ tasks, isEnded }: TaskSectionProps) {
 }
 ```
 
-#### 4. `app/(dashboard)/page.tsx`
+#### 3. `app/(dashboard)/page.tsx`
 
 Pass `isEnded` to `TaskSection`:
 
 ```tsx
 <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} isEnded={isEnded} />
 ```
-
-### Agent context update
-
-CLAUDE.md already points to `specs/005-fix-inconsistent-reversal/plan.md` — no change needed.
 
 ---
 
@@ -183,4 +141,4 @@ CLAUDE.md already points to `specs/005-fix-inconsistent-reversal/plan.md` — no
 | II. Supabase Patterns | PASS — typed client, RLS applies to `day_records` |
 | III. TanStack First | PASS — no new state management |
 | IV. shadcn Components First | PASS — no new components |
-| V. Test Coverage | PASS — unit test for `canUndoRestDay`, E2E test for task-lock flow |
+| V. Test Coverage | PASS — E2E test for task-lock flow |

@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
-import { calculatePenalties, calculateEffortReward, calculateChoreRewards } from '@/lib/points'
-import { isChoreAvailableOn, dayOfWeekFromDate, todayInTimezone } from '@/lib/chore-schedule'
+import { calculatePenalties, calculateChoreRewards } from '@/lib/points'
+import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
 import type { ChoreCompletion } from '@/lib/types'
 
 async function getCurrentKid() {
@@ -150,7 +150,7 @@ export async function declareRestDay(dayRecordId: string) {
   return { success: true }
 }
 
-export async function endDay(dayRecordId: string, effortLevelId?: string) {
+export async function endDay(dayRecordId: string) {
   const supabase = await createSupabaseServerClient()
 
   // Check not already ended
@@ -215,34 +215,6 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
     })
   }
 
-  // Apply effort reward
-  if (effortLevelId) {
-    const { data: effortLevel } = await supabase
-      .from('effort_levels')
-      .select()
-      .eq('id', effortLevelId)
-      .single()
-
-    if (effortLevel) {
-      const effortPoints = calculateEffortReward({ id: effortLevel.id, familyId: effortLevel.family_id, name: effortLevel.name, points: effortLevel.points })
-      if (effortPoints > 0) {
-        await supabase.from('activity_log').insert({
-          family_id: kid!.family_id,
-          kid_id: kidId,
-          actor_type: 'kid' as const,
-          action_type: 'effort_awarded' as const,
-          metadata: { effort_level_id: effortLevelId, effort_level_name: effortLevel.name },
-          points_delta: effortPoints,
-        })
-      }
-
-      await supabase
-        .from('day_records')
-        .update({ effort_level_id: effortLevelId })
-        .eq('id', dayRecordId)
-    }
-  }
-
   // Mark day as ended
   await supabase
     .from('day_records')
@@ -262,174 +234,3 @@ export async function endDay(dayRecordId: string, effortLevelId?: string) {
   return { success: true }
 }
 
-export async function undoEndDay(dayRecordId: string) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: kid } = await supabase
-    .from('kids')
-    .select('id, family_id')
-    .eq('supabase_user_id', user.id)
-    .maybeSingle()
-
-  if (!kid) throw new Error('Kid not found')
-
-  const { data: dayRecord } = await supabase
-    .from('day_records')
-    .select('ended_at, kid_id, date, undo_end_count')
-    .eq('id', dayRecordId)
-    .single()
-
-  if (!dayRecord?.ended_at) return { error: 'Day has not been ended' }
-  if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
-
-  // Current-day restriction
-  const { data: family } = await supabase
-    .from('families')
-    .select('timezone')
-    .eq('id', kid.family_id)
-    .single()
-  const today = todayInTimezone(family?.timezone ?? 'UTC')
-  if (dayRecord.date !== today) return { error: 'Can only undo today\'s end day' }
-
-  // One-undo limit
-  if (dayRecord.undo_end_count >= 1) return { error: 'Undo already used for today' }
-
-  // Find the most recent day_ended event to establish the upper bound of the current End Day run
-  const { data: dayEndedEvent } = await supabase
-    .from('activity_log')
-    .select('created_at')
-    .eq('kid_id', kid.id)
-    .eq('action_type', 'day_ended')
-    .filter('metadata->>day_record_id', 'eq', dayRecordId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const endedAt = dayEndedEvent?.created_at ?? new Date().toISOString()
-
-  // Find the most recent day_undone event before this End Day — establishes the lower bound
-  // so we only reverse events inserted during the current End Day run (FR-013)
-  const { data: lastUndoneEvent } = await supabase
-    .from('activity_log')
-    .select('created_at')
-    .eq('kid_id', kid.id)
-    .eq('action_type', 'day_undone')
-    .filter('metadata->>day_record_id', 'eq', dayRecordId)
-    .lt('created_at', endedAt)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const afterAt = lastUndoneEvent?.created_at ?? '1970-01-01T00:00:00.000Z'
-
-  // Fetch only events inserted during the current End Day run
-  const { data: logEntries } = await supabase
-    .from('activity_log')
-    .select('id, action_type, points_delta, metadata')
-    .eq('kid_id', kid.id)
-    .in('action_type', ['penalty_applied', 'effort_awarded', 'chore_completion_reward'])
-    .not('points_delta', 'is', null)
-    .gt('created_at', afterAt)
-    .lte('created_at', endedAt)
-
-  for (const entry of logEntries ?? []) {
-    if (entry.action_type === 'penalty_applied') {
-      await supabase.from('activity_log').insert({
-        family_id: kid.family_id,
-        kid_id: kid.id,
-        actor_type: 'kid' as const,
-        action_type: 'penalty_reversed' as const,
-        metadata: { day_record_id: dayRecordId },
-        points_delta: -(entry.points_delta!),
-      })
-    } else if (entry.action_type === 'effort_awarded') {
-      await supabase.from('activity_log').insert({
-        family_id: kid.family_id,
-        kid_id: kid.id,
-        actor_type: 'kid' as const,
-        action_type: 'effort_reversed' as const,
-        metadata: { day_record_id: dayRecordId },
-        points_delta: -(entry.points_delta!),
-      })
-    } else if (entry.action_type === 'chore_completion_reward') {
-      const meta = entry.metadata as Record<string, unknown>
-      await supabase.from('activity_log').insert({
-        family_id: kid.family_id,
-        kid_id: kid.id,
-        actor_type: 'kid' as const,
-        action_type: 'chore_completion_reward_reversed' as const,
-        metadata: { chore_name: meta.chore_name as string, original_event_id: entry.id },
-        points_delta: -(entry.points_delta!),
-      })
-    }
-  }
-
-  await supabase.from('activity_log').insert({
-    family_id: kid.family_id,
-    kid_id: kid.id,
-    actor_type: 'kid' as const,
-    action_type: 'day_undone' as const,
-    metadata: { day_record_id: dayRecordId },
-    points_delta: null,
-  })
-
-  await supabase
-    .from('day_records')
-    .update({ ended_at: null, effort_level_id: null, undo_end_count: dayRecord.undo_end_count + 1 })
-    .eq('id', dayRecordId)
-
-  revalidatePath('/')
-  return { success: true }
-}
-
-export async function undoRestDay(dayRecordId: string) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: kid } = await supabase
-    .from('kids')
-    .select('id, family_id')
-    .eq('supabase_user_id', user.id)
-    .maybeSingle()
-
-  if (!kid) throw new Error('Kid not found')
-
-  const { data: dayRecord } = await supabase
-    .from('day_records')
-    .select('is_rest_day, kid_id, date, undo_rest_day_count')
-    .eq('id', dayRecordId)
-    .single()
-
-  if (!dayRecord?.is_rest_day) return { error: 'Not a rest day' }
-  if (dayRecord.kid_id !== kid.id) return { error: 'Not authorized' }
-
-  const { data: family } = await supabase
-    .from('families')
-    .select('timezone')
-    .eq('id', kid.family_id)
-    .single()
-  const today = todayInTimezone(family?.timezone ?? 'UTC')
-  if (dayRecord.date !== today) return { error: 'Can only undo today\'s rest day' }
-
-  if (dayRecord.undo_rest_day_count >= 1) return { error: 'Undo already used for rest day today' }
-
-  await supabase
-    .from('day_records')
-    .update({ is_rest_day: false, undo_rest_day_count: dayRecord.undo_rest_day_count + 1 })
-    .eq('id', dayRecordId)
-
-  await supabase.from('activity_log').insert({
-    family_id: kid.family_id,
-    kid_id: kid.id,
-    actor_type: 'kid' as const,
-    action_type: 'rest_day_reversed' as const,
-    metadata: { day_record_id: dayRecordId },
-    points_delta: 100,
-  })
-
-  revalidatePath('/')
-  return { success: true }
-}

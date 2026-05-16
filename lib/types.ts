@@ -51,10 +51,7 @@ export type DayRecord = {
   kidId: string
   date: string
   isRestDay: boolean
-  effortLevelId: string | null
   endedAt: string | null
-  undoEndCount: number
-  undoRestDayCount: number
   choreCompletions: ChoreCompletion[]
 }
 
@@ -65,13 +62,6 @@ export type Reward = {
   pointsCost: number
   icon: string
   deletedAt: string | null
-}
-
-export type EffortLevel = {
-  id: string
-  familyId: string
-  name: string
-  points: number
 }
 
 export type Task = {

@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
   calculatePenalties,
-  calculateEffortReward,
   calculateChoreRewards,
   canAffordRestDay,
   applyPointsFloor,
   REST_DAY_COST,
 } from '@/lib/points'
-import type { ChoreCompletion, EffortLevel } from '@/lib/types'
+import type { ChoreCompletion } from '@/lib/types'
 
 function makeCompletion(
   overrides: Partial<ChoreCompletion> = {}
@@ -24,10 +23,6 @@ function makeCompletion(
     uncheckCount: 0,
     ...overrides,
   }
-}
-
-function makeEffortLevel(points: number): EffortLevel {
-  return { id: 'effort-id', familyId: 'family-id', name: 'Good', points }
 }
 
 describe('calculatePenalties', () => {
@@ -66,20 +61,6 @@ describe('calculatePenalties', () => {
 
   it('returns 0 for empty completions list', () => {
     expect(calculatePenalties([], false)).toBe(0)
-  })
-})
-
-describe('calculateEffortReward', () => {
-  it('returns 0 when effort level is null', () => {
-    expect(calculateEffortReward(null)).toBe(0)
-  })
-
-  it('returns the effort level points when defined', () => {
-    expect(calculateEffortReward(makeEffortLevel(50))).toBe(50)
-  })
-
-  it('returns 0 when effort level has 0 points', () => {
-    expect(calculateEffortReward(makeEffortLevel(0))).toBe(0)
   })
 })
 

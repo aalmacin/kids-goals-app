@@ -2,32 +2,18 @@
 
 **Feature Branch**: `005-fix-inconsistent-reversal`
 **Created**: 2026-05-15
-**Status**: Draft
-**Input**: User description: "Reversing a chore or task should only happen once per day the chore or repeatable task was completed. It should be consistent with the app. Undoing and ending should be consistent all the time."
+**Status**: Complete
+**Input**: User description: "Reversing a chore or task should only happen once per day the chore or repeatable task was completed. It should be consistent with the app."
+
+> **Note (2026-05-16)**: Undo End Day and Undo Rest Day were removed. End Day is now a permanent terminal action. If a kid forgets to end the day, they can return to it via the Calendar page. The Effort Levels feature was also removed entirely.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Undo End Day (Priority: P1)
-
-A kid accidentally ends their day or ends it too early. They need to undo this action so they can continue completing chores. The undo is allowed once per ended day.
-
-**Why this priority**: Currently "End Day" says "This cannot be undone", making it the most impactful inconsistency. Kids who accidentally end their day lose the ability to complete remaining chores and earn points.
-
-**Independent Test**: Can be tested by ending a day, then clicking "Undo End Day", verifying the day reopens and chores become toggleable again.
-
-**Acceptance Scenarios**:
-
-1. **Given** a kid has ended their day, **When** they click "Undo End Day", **Then** the day reopens (ended_at is cleared), penalties and effort rewards from that end-day are reversed, and chores become toggleable again
-2. **Given** a kid has already undone the end-day once for a specific date, **When** they end and try to undo again, **Then** the undo option is not available
-3. **Given** a kid has ended their day on a past date, **When** they view that date, **Then** the undo option is not available (undo is only for the current day)
-
----
-
-### User Story 2 - Undo Chore Completion Limited to Once Per Day (Priority: P2)
+### User Story 1 - Undo Chore Completion Limited to Once Per Day (Priority: P1)
 
 A kid checks a chore as done but realizes they haven't actually completed it. They can uncheck it once. After unchecking and re-checking, the chore cannot be unchecked again for that day.
 
-**Why this priority**: Prevents kids from gaming the system by repeatedly toggling chores, while still allowing a single honest correction. Makes chore toggling consistent with the one-undo-per-day rule for end-day.
+**Why this priority**: Prevents kids from gaming the system by repeatedly toggling chores. Makes chore toggling consistent with the one-undo-per-day principle.
 
 **Independent Test**: Can be tested by completing a chore, unchecking it, re-completing it, and verifying the checkbox is now locked in the completed state.
 
@@ -40,86 +26,85 @@ A kid checks a chore as done but realizes they haven't actually completed it. Th
 
 ---
 
-### User Story 3 - Consistent Visual Feedback for Undo State (Priority: P3)
+### User Story 2 - Consistent Visual Feedback for Undo State (Priority: P2)
 
-The UI clearly communicates when an undo is available vs. exhausted, across both chore completion and end-day actions.
+The UI clearly communicates when a chore undo is available vs. exhausted.
 
 **Why this priority**: Without clear visual cues, kids won't understand why they can't undo an action, leading to confusion.
 
-**Independent Test**: Can be tested by observing the UI state of chore checkboxes and end-day button across different undo states.
+**Independent Test**: Can be tested by observing the UI state of chore checkboxes across different undo states.
 
 **Acceptance Scenarios**:
 
-1. **Given** a day has been ended and undo is available, **When** viewing the dashboard, **Then** an "Undo End Day" button is visible (large, prominent, kid-friendly)
-2. **Given** a day has been ended and undo is exhausted, **When** viewing the dashboard, **Then** only "Day Ended" status is shown (no undo button)
-3. **Given** a chore has been completed and can still be unchecked, **When** viewing the chore, **Then** the checkbox is interactive
-4. **Given** a chore's undo has been exhausted, **When** viewing the completed chore, **Then** the checkbox appears visually locked
-5. **Given** a kid clicks "Undo End Day", **When** the confirmation dialog appears, **Then** it clearly explains that penalties and effort rewards will be reversed
-6. **Given** a rest day has been purchased and undo is available, **When** viewing the dashboard, **Then** an "Undo Rest Day" button is visible (large, prominent, kid-friendly)
+1. **Given** a chore has been completed and can still be unchecked, **When** viewing the chore, **Then** the checkbox is interactive
+2. **Given** a chore's undo has been exhausted, **When** viewing the completed chore, **Then** the checkbox appears visually locked
+
+---
+
+### User Story 3 - Tasks Hidden After End Day (Priority: P3)
+
+Once a kid ends their day, the repeated task section is hidden and task completion is blocked server-side. End Day is a terminal action for all daily point-earning activities.
+
+**Why this priority**: Kids could earn extra points by completing tasks after declaring their day done, which is inconsistent with End Day being a terminal action.
+
+**Independent Test**: End the day, verify the Tasks section is no longer visible on the dashboard. Attempt to complete a task via the server action directly — verify it is rejected.
+
+**Acceptance Scenarios**:
+
+1. **Given** a kid has ended their day, **When** viewing the dashboard, **Then** the Tasks section is not shown
+2. **Given** a kid has ended their day, **When** a task completion is attempted (e.g., via direct API call), **Then** the server rejects it with an appropriate error
 
 ---
 
 ### Edge Cases
 
-- What happens if the kid undoes end-day, then the date rolls over to the next day? The undo count stays with the date, so the new day starts fresh.
-- What happens if penalties were applied during end-day and then end-day is undone? The penalty and effort reward activity log entries from that end-day are reversed (negative entries inserted to cancel them out).
 - What happens if a chore is unchecked on a day that hasn't been ended? The uncheck count increments normally. The one-undo limit applies regardless of end-day state.
 - What happens if the app is used offline and syncs later? Standard Supabase sync behavior applies; undo counts are tracked server-side.
-- What happens if a kid purchased a rest day and then ended the day, then undoes end-day? The rest day purchase is NOT reversed by undo end-day. Rest day is a separate action with its own independent undo (once per day).
-- What happens to undo rest day after the day has been ended? Undo rest day is only available before the day is ended. Once the day is ended, the "Undo Rest Day" button is no longer shown — the rest day action section is hidden when `ended_at` is set. This is intentional: rest day decisions should be finalized before ending the day.
+- If a kid forgets to end the day, the day remains open. They can return via the Calendar page to end it on a past date.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST allow undoing "End Day" exactly once per day record
-- **FR-002**: System MUST track the number of times end-day has been undone per day record (0 or 1)
-- **FR-003**: When end-day is undone, system MUST clear the `ended_at` timestamp, clear the effort level selection, reverse penalty activity log entries, and reverse effort reward activity log entries (points returned) from that end-day. Rest day status is NOT affected. When the kid re-ends the day, they select effort level fresh.
-- **FR-004**: System MUST allow unchecking a completed chore exactly once per chore completion per day
-- **FR-005**: System MUST track whether a chore completion has been unchecked before (per day record)
-- **FR-006**: After a chore has been unchecked once and re-completed, the checkbox MUST be locked in the completed state
-- **FR-007**: Undo end-day MUST only be available for the current date, not past dates
-- **FR-008**: The "Undo End Day" button MUST only appear when the day is ended AND undo has not been used
-- **FR-009**: All undo/reversal operations MUST create activity log entries for audit purposes
-- **FR-010**: Points recalculation MUST happen automatically via the existing event-sourcing trigger when reversal activity log entries are inserted
-- **FR-011**: System MUST allow undoing a rest day purchase exactly once per day record, independently from undo end-day
-- **FR-012**: When rest day is undone, system MUST clear the `is_rest_day` flag and reverse the 100-point deduction via a reversal activity log entry
-- **FR-013**: "Undo End Day" MUST show a confirmation dialog before executing, consistent with how "End Day" works
-- **FR-014**: All action buttons (End Day, Undo End Day, Undo Rest Day) MUST be large and prominent for kid-friendly usability
+- **FR-001**: System MUST allow unchecking a completed chore exactly once per chore completion per day
+- **FR-002**: System MUST track whether a chore completion has been unchecked before (per day record)
+- **FR-003**: After a chore has been unchecked once and re-completed, the checkbox MUST be locked in the completed state
+- **FR-004**: All undo/reversal operations MUST create activity log entries for audit purposes
+- **FR-005**: Points recalculation MUST happen automatically via the existing event-sourcing trigger when reversal activity log entries are inserted
+- **FR-006**: Once a kid ends their day, the repeated task section MUST be hidden on the dashboard
+- **FR-007**: Task completion server action MUST reject requests made after the day has been ended
 
 ### Key Entities
 
-- **DayRecord**: Extended with an `undo_end_count` field (integer, default 0) to track how many times end-day has been undone. Extended with an `undo_rest_day_count` field (integer, default 0) to track how many times rest day has been undone.
 - **ChoreCompletion**: Extended with an `uncheck_count` field (integer, default 0) to track how many times the chore has been unchecked
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Kids can undo an accidental end-day within the same day, once per day
-- **SC-002**: Kids can uncheck a completed chore once per chore per day
-- **SC-003**: After using their one undo, the action is permanently locked for that day
-- **SC-004**: Points are correctly adjusted when end-day is undone (penalties reversed, effort rewards reversed)
-- **SC-005**: All reversal operations are fully auditable via the activity log
-- **SC-006**: Undo behavior is consistent: one reversal allowed, same rule for both chore unchecking and end-day undoing
+- **SC-001**: Kids can uncheck a completed chore once per chore per day
+- **SC-002**: After using their one undo, the action is permanently locked for that day
+- **SC-003**: All reversal operations are fully auditable via the activity log
+- **SC-004**: After ending the day, the Tasks section is hidden and task completion is blocked server-side
 
 ## Clarifications
 
 ### Session 2026-05-15
 
-- Q: When a kid undoes end-day on a rest day, is the rest day purchase also reversed? → A: No. Rest day is a separate undoable action with its own independent one-undo limit.
-- Q: When end-day is undone, what happens to the effort level selection and effort reward points? → A: Effort level selection is cleared and effort reward points are reversed. Kid picks effort level fresh when re-ending.
-- Q: Should "Undo End Day" require a confirmation dialog? → A: Yes, with a confirmation dialog consistent with "End Day". All action buttons must be large and prominent for kids.
-- Q: Should task undo also be limited to once per day like chores? → A: No. Task undo is a separate system — tasks update points immediately and have their own undo rules. This feature only covers chores, end-day, and rest day reversal.
+- Q: Should task undo also be limited to once per day like chores? → A: No. Task undo is a separate system — tasks update points immediately and have their own undo rules. This feature only covers chores and end-day terminal behavior.
+
+### Session 2026-05-16
+
+- Q: Should Undo End Day be kept? → A: No. End Day is now permanent. If a kid forgets to end the day, they can return via the Calendar page.
+- Q: Should the Effort Levels feature (dropdown shown after all chores complete) be kept? → A: No. The entire Effort Levels feature has been removed.
 
 ## Scope
 
-**In scope**: Chore uncheck limits, undo end-day, undo rest day.
-**Out of scope**: Task undo behavior. Tasks are a separate system with immediate point updates and their own independent undo rules (unchanged by this feature).
+**In scope**: Chore uncheck limits, hiding tasks after End Day, server-side task completion guard.
+**Out of scope**: Undo End Day (removed). Undo Rest Day (removed). Effort Levels (removed entirely). Task undo behavior — tasks have their own independent undo rules (unchanged by this feature).
 
 ## Assumptions
 
 - The existing event-sourcing system (activity_log trigger) handles points recalculation when reversal entries are inserted
-- Undo end-day is only available for the current date to prevent retroactive score manipulation
 - The one-undo limit is a simple counter on the database record, not a time-based window
 - No parent/admin override is needed for undo limits in this iteration

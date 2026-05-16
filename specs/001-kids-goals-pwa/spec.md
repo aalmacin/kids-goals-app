@@ -2,7 +2,9 @@
 
 **Feature Branch**: `001-kids-goals-pwa`
 **Created**: 2026-04-25
-**Status**: Draft
+**Status**: Complete
+
+> **Subsequent removals (2026-05-16)**: The Effort Levels feature (User Story 8, FR-011, FR-012, FR-017) was removed. The `effort_levels` table, `EffortDropdown`, admin effort page, and all effort award logic have been deleted from the codebase.
 
 ## Clarifications
 

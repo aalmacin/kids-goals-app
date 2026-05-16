@@ -76,21 +76,6 @@ describe('Points Event Sourcing Integration', () => {
     expect(points).toBe(Math.max(0, sum))
   })
 
-  it('balance equals SUM(points_delta) after an effort reward event', async () => {
-    await service.from('activity_log').insert({
-      family_id: familyId,
-      kid_id: kidId,
-      actor_type: 'kid',
-      action_type: 'effort_awarded',
-      metadata: {},
-      points_delta: 50,
-    })
-
-    const points = await getKidPoints()
-    const sum = await sumActivityLogDeltas()
-    expect(points).toBe(Math.max(0, sum))
-  })
-
   it('balance equals SUM(points_delta) after a rest day purchase', async () => {
     await service.from('activity_log').insert({
       family_id: familyId,

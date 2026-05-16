@@ -2,8 +2,10 @@
 
 **Feature Branch**: `006-realtime-points-update`
 **Created**: 2026-05-06
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "Whenever the day is completed on the app, the points on the UI should be updated right away."
+
+> **Subsequent removal (2026-05-16)**: User Story 2 (Undo End Day) was removed. End Day is now a permanent terminal action. The `UndoEndDayButton` component and `undoEndDay` server action have been deleted. FR-006, FR-007, FR-008 no longer apply.
 
 ## Clarifications
 

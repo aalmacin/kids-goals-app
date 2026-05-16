@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Spec references `ended_at`, `undo_end_count`, and `uncheck_count` as entity fields - these describe data concepts, not implementation. Acceptable for Key Entities section.
-- The activity_log trigger mention in Assumptions is referencing existing system behavior, not prescribing implementation.
+- Spec references `uncheck_count` as an entity field — describes a data concept, not implementation. Acceptable for Key Entities section.
+- Undo End Day (US1), Undo Rest Day (US3), and Effort Levels were removed on 2026-05-16. Spec updated accordingly.
