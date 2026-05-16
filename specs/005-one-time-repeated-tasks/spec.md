@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-one-time-repeated-tasks`
 **Created**: 2026-05-12
-**Status**: Draft
+**Status**: Implemented
 **Input**: User description: "Add one-time tasks and repeated tasks"
 
 ## User Scenarios & Testing *(mandatory)*
@@ -91,11 +91,11 @@ A parent or admin navigates to the Tasks section via the admin navbar, then crea
 - **FR-012**: Completed tasks (one-time, once-per-day, or max-completions reached) MUST remain visible on the dashboard until end of day with a completed state and an undo button.
 - **FR-013**: Undo MUST be available for all task types (one-time and repeated) for same-day completions only. Undo reverses the most recent completion for that task. Task undo is independent from the "undo end day" operation (which only affects chores and efforts).
 - **FR-014**: Repeated tasks MUST support a "once per day" option that limits the task to one completion per calendar day.
-- **FR-015**: The task list MUST display daily completion counts for repeated tasks and group tasks by type (one-time vs repeatable).
+- **FR-015**: The task list MUST display daily completion counts for repeated tasks and group tasks by type (one-time vs repeated).
 
 ### Key Entities
 
-- **Task**: Represents a goal a child can complete. Attributes: name, type (one-time | repeated), point value, optional max completion count.
+- **Task**: Represents a goal a child can complete. Attributes: name, type (one-time | repeated), point value, optional max completion count, once_per_day flag (repeated tasks only).
 - **Task Completion**: A record of a child completing a task. Attributes: task reference, child reference, timestamp, points awarded.
 - **Activity Log**: The child's history of completed tasks and awarded points, composed of task completion records.
 

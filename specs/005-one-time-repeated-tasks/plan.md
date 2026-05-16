@@ -66,7 +66,7 @@ components/
 
 supabase/
 └── migrations/
-    └── 0015_task_edit_rls.sql            # UPDATE RLS policy for tasks (if needed)
+    └── (no new migration needed — existing parent_all_tasks RLS covers UPDATE)
 ```
 
 **Structure Decision**: Single Next.js app with Supabase backend. New code is minimal — one new component, one new server action, one new DB function, and potentially one migration for UPDATE RLS policy.

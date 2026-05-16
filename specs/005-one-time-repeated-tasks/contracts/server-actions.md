@@ -78,7 +78,6 @@ Removes the most recent task completion for the authenticated kid, deducting poi
 **Guards**:
 1. Task exists and is not deleted
 2. A completion exists for this kid+task today (family timezone) — else → `'No completion to undo today'`
-3. The task is `repeated` — undo is not available for `one_time` tasks
 
 **Side effects**:
 1. Deletes the most recent `task_completions` row for kid+task (today only)
@@ -88,8 +87,9 @@ Removes the most recent task completion for the authenticated kid, deducting poi
 
 **Errors**:
 - `'No completion to undo today'` — no same-day completion found
-- `'Cannot undo one-time task'` — task type is `one_time`
 - `'Not authenticated'` — no session
+
+**Note**: Undo is available for all task types (one-time and repeated) for same-day completions. Task undo is independent of the "undo end day" operation.
 
 ---
 

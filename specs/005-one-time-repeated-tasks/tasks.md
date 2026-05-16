@@ -88,7 +88,7 @@
 **⚠️ CRITICAL**: No user story enhancement work (Phases 9–10) can begin until this phase is complete.
 
 - [x] T021 Update `lib/db/tasks.ts` — update `mapTask` to include `oncePerDay` from `once_per_day` column; update `getAvailableTasksForKid(kidId, familyId, familyTimezone)` to accept `familyTimezone` parameter, return `TaskWithCounts[]` with `todayCount` (partition completions by today vs all-time using family timezone), filter out `once_per_day` tasks where `todayCount > 0`; update `createTask` signature to accept `oncePerDay: boolean`; add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` that deletes the most recent completion for today and returns `{ pointsSnapshot: number } | null`
-- [x] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, validate task is repeated, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`)
+- [x] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`) — undo available for all task types
 
 **Checkpoint**: Foundation enhanced — UI work can now begin.
 
@@ -212,5 +212,5 @@ Phases 1–11 are complete. Only Phase 12 (Task Editing) remains.
 - Constitution requires E2E tests for all user-facing flows — included in Phases 9 and 10
 - `undoLastTaskCompletionAction` only works for same-day completions (family timezone) — prevents gaming
 - `once_per_day` is stored as a boolean on `tasks` — avoids overloading `max_completions`
-- TaskItem undo button only appears for repeated tasks with `todayCount > 0`
+- TaskItem undo button appears for all task types (one-time and repeated) with `todayCount > 0`
 - Family timezone is already available on the dashboard page (used for chore schedule logic)
