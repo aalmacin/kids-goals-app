@@ -2,13 +2,17 @@
 
 **Branch**: `005-fix-inconsistent-reversal` | **Date**: 2026-05-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/005-fix-inconsistent-reversal/spec.md`
-**User guidance**: Chore uncheck limits, hide tasks after End Day, remove Undo Day and Effort Levels
+**User guidance**: Chore uncheck limits, hide tasks after End Day, End Day atomicity via PostgreSQL RPC
 
 ## Summary
 
-Fix inconsistent reversal behavior: limit chore unchecking to once per day, and make End Day a complete terminal action (tasks hidden, completion blocked server-side). The Undo End Day, Undo Rest Day, and Effort Levels features were removed on 2026-05-16.
+Three changes shipped in this branch:
 
-All implementation is complete (T001–T031).
+1. **Chore uncheck limit** — one uncheck per chore per day; checkbox locks after re-completion.
+2. **Tasks hidden after End Day** — `TaskSection` hides when `isEnded`; server-side guard in `completeTaskAction`.
+3. **End Day atomicity** — `endDay` server action replaced with a `supabase.rpc('end_day', ...)` call backed by a PostgreSQL function that writes penalty, chore rewards, `ended_at`, and `day_ended` log entry in a single implicit transaction. Partial failure is impossible.
+
+Undo End Day, Undo Rest Day, and Effort Levels were removed (see spec.md).
 
 ## Technical Context
 
@@ -18,23 +22,21 @@ All implementation is complete (T001–T031).
 **Testing**: Vitest (unit/integration), Playwright (E2E)
 **Target Platform**: Web (Next.js app)
 **Project Type**: Web application (Next.js App Router)
-**Performance Goals**: Standard SSR response times; no new DB queries beyond the existing `getOrCreateDayRecord`
-**Constraints**: No schema migrations needed — `day_records.ended_at` already exists
+**Performance Goals**: Standard SSR response times; single RPC replaces 4–6 round-trips for End Day
+**Constraints**: No client-side transactions; atomicity requires PostgreSQL function via `supabase.rpc()`
 **Scale/Scope**: Single-family app; one kid's dashboard per session
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns (Server Actions, no `/api` for mutations) | PASS | Guard added to existing server action; no new API routes |
-| II. Supabase Patterns (RLS, typed client) | PASS | Read `day_records.ended_at` via existing typed Supabase client |
-| III. TanStack First | PASS | No new client state; existing patterns unchanged |
-| IV. shadcn Components First | PASS | No new custom components needed |
-| V. Test Coverage (E2E mandatory for user-facing flows) | PASS | E2E test required for task-locked-after-end-day flow |
+| I. Next.js Patterns | PASS | `endDay` remains a server action; no new API routes |
+| II. Supabase Patterns | PASS | RPC via typed Supabase client; no Edge Functions |
+| III. TanStack First | PASS | No new client state |
+| IV. shadcn Components First | PASS | No new components |
+| V. Test Coverage | PASS | Integration test for atomicity; E2E for end-day flow |
 
-No violations. No entries needed in Complexity Tracking.
+No violations.
 
 ## Project Structure
 
@@ -43,38 +45,45 @@ No violations. No entries needed in Complexity Tracking.
 ```text
 specs/005-fix-inconsistent-reversal/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output (existing)
-├── data-model.md        # Phase 1 output (existing)
-├── quickstart.md        # Phase 1 output (existing)
-└── tasks.md             # Phase 2 output (existing — T001–T024 all complete)
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+└── tasks.md             # Phase 2 output
 ```
 
-### Source Code (key files)
+### Source Code (relevant files)
 
 ```text
-app/(dashboard)/page.tsx                          # Pass isEnded to TaskSection; removed effort fetching
-components/task-list/TaskSection.tsx              # Accept isEnded; hide when ended
-lib/actions/tasks.ts                              # Add day-ended guard to completeTaskAction
-lib/undo-eligibility.ts                           # canUncheckChore only (undo day functions removed)
-__tests__/unit/undo-eligibility.test.ts           # canUncheckChore tests only
-__tests__/e2e/task-locked-after-end-day.spec.ts   # E2E: tasks hidden after End Day
+supabase/migrations/0016_end_day_atomic.sql       # New: end_day() PL/pgSQL function
+lib/actions/day-records.ts                        # endDay → thin auth wrapper + supabase.rpc()
+lib/actions/tasks.ts                              # completeTaskAction day-ended guard
+components/task-list/TaskSection.tsx              # isEnded prop
+components/chore-list/ChoreItem.tsx               # lock checkbox when uncheck exhausted
+app/(dashboard)/page.tsx                          # wire isEnded to TaskSection
+__tests__/integration/end-day-atomic.test.ts      # atomicity integration test
+__tests__/e2e/end-day.spec.ts                     # E2E: end day happy path
 ```
-
-**Removed files**: `UndoEndDayButton.tsx`, `UndoRestDayButton.tsx`, `EffortDropdown.tsx`, `lib/actions/effort-levels.ts`, `lib/db/effort-levels.ts`, `app/(admin)/admin/effort/`, undo day E2E and integration tests.
 
 ---
 
 ## Phase 0: Research
 
-### Finding 1 — TaskSection remains interactive after ending the day
+### Finding 1 — No multi-statement transaction API in Supabase JS client
 
-`app/(dashboard)/page.tsx` renders `<TaskSection>` unconditionally — outside the `{!isEnded}` block. `TaskSection` has no `isEnded` prop. `TaskItem` calls `completeTaskAction` with no day-ended guard.
+Supabase's REST client sends each `insert`/`update` as a separate HTTP request. There is no `BEGIN/COMMIT` wrapper. A partial failure between writes leaves the DB in an inconsistent state.
 
-**Fix**: Pass `isEnded` to `TaskSection`; hide the section when the day is ended. Add server-side guard in `completeTaskAction` that checks today's `day_records.ended_at`.
+**Fix**: Extract all `endDay` writes into a PostgreSQL function. PostgreSQL wraps PL/pgSQL functions in an implicit transaction — any `RAISE EXCEPTION` rolls back all statements executed so far in that call.
 
-### Decision: No schema changes required
+### Finding 2 — Existing precedent: `apply_points_delta`
 
-All guards use the existing `day_records.ended_at` column.
+Migration 0003 already uses a `SECURITY DEFINER` PL/pgSQL function for the points update. The same pattern applies here. `auth.uid()` is available inside `SECURITY DEFINER` functions in Supabase because the request JWT is set via `set_config` before the function executes.
+
+### Finding 3 — Penalty and reward logic is simple SQL
+
+`calculatePenalties`: `SUM(penalty_snapshot) WHERE completed_at IS NULL AND (NOT is_rest_day OR is_important)`.
+`calculateChoreRewards`: rows `WHERE completed_at IS NOT NULL AND reward_snapshot > 0`.
+
+Both are straightforward SQL — no special operators. The TypeScript helpers remain for display/testing; the DB function reimplements them in SQL for atomicity.
 
 ---
 
@@ -82,54 +91,54 @@ All guards use the existing `day_records.ended_at` column.
 
 ### Data model changes
 
-None. `day_records.ended_at` is the existing signal for all guards.
+New migration `0016_end_day_atomic.sql` — adds PostgreSQL function `end_day(p_day_record_id uuid) RETURNS jsonb`.
+
+See [data-model.md](./data-model.md) for the full function definition.
 
 ### Contracts
 
-`completeTaskAction(taskId: string)` — unchanged signature; guard is internal. `endDay(dayRecordId: string)` — `effortLevelId` parameter removed.
+`endDay(dayRecordId: string)` server action — external signature unchanged. Internally replaces sequential writes with `supabase.rpc('end_day', { p_day_record_id: dayRecordId })`.
+
+On RPC error: server action throws, Next.js surfaces error to client.
+On RPC success: returns `{ success: true }` as before.
 
 ### Implementation design
 
-#### 1. `lib/actions/tasks.ts` — `completeTaskAction`
+#### 1. `supabase/migrations/0016_end_day_atomic.sql`
 
-After fetching the kid, check today's day record:
+New PL/pgSQL function (see data-model.md for full body):
+
+- Validates caller owns the day record via `auth.uid()` → raises exception if not found/authorized
+- Idempotent check: if `ended_at IS NOT NULL`, returns `{ success: true }` immediately
+- Calculates and inserts `penalty_applied` activity_log entry (if penalty > 0)
+- Loops over rewarded completions, inserts one `chore_completion_reward` entry each
+- Updates `day_records.ended_at = now()`
+- Inserts `day_ended` activity_log entry
+- All writes in a single implicit transaction — any failure rolls everything back
+
+#### 2. `lib/actions/day-records.ts` — `endDay`
+
+Replace the multi-write body with a thin wrapper:
 
 ```ts
-// Guard: block task completion after day is ended
-const timezone = await getFamilyTimezone(kid.family_id)
-const today = todayInTimezone(timezone)
-const { data: todayRecord } = await supabase
-  .from('day_records')
-  .select('ended_at')
-  .eq('kid_id', kid.id)
-  .eq('date', today)
-  .maybeSingle()
-if (todayRecord?.ended_at) throw new Error('Cannot complete tasks after ending the day')
-```
+export async function endDay(dayRecordId: string) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
 
-#### 2. `components/task-list/TaskSection.tsx`
+  const { error } = await supabase.rpc('end_day', { p_day_record_id: dayRecordId })
+  if (error) throw new Error(error.message)
 
-Add `isEnded: boolean` prop. Return `null` when `isEnded`:
-
-```tsx
-interface TaskSectionProps {
-  tasks: TaskWithCounts[]
-  isEnded: boolean
-}
-
-export function TaskSection({ tasks, isEnded }: TaskSectionProps) {
-  if (isEnded || tasks.length === 0) return null
-  // ... rest unchanged
+  revalidatePath('/')
+  return { success: true }
 }
 ```
 
-#### 3. `app/(dashboard)/page.tsx`
+The auth check (`getUser`) stays in the server action as a fast-fail before the DB round-trip. The function itself also validates ownership internally.
 
-Pass `isEnded` to `TaskSection`:
+#### 3. Regenerate `lib/database.types.ts`
 
-```tsx
-<TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} isEnded={isEnded} />
-```
+Run `bunx supabase gen types typescript --local` after applying migration 0016 so `supabase.rpc('end_day', ...)` is fully typed.
 
 ---
 
@@ -137,8 +146,8 @@ Pass `isEnded` to `TaskSection`:
 
 | Principle | Status |
 |-----------|--------|
-| I. Next.js Patterns | PASS — server action guard, no new API routes |
-| II. Supabase Patterns | PASS — typed client, RLS applies to `day_records` |
-| III. TanStack First | PASS — no new state management |
-| IV. shadcn Components First | PASS — no new components |
-| V. Test Coverage | PASS — E2E test for task-lock flow |
+| I. Next.js Patterns | PASS — server action calls RPC; no API routes |
+| II. Supabase Patterns | PASS — typed `supabase.rpc()`; SECURITY DEFINER follows existing pattern |
+| III. TanStack First | PASS — no new state |
+| IV. shadcn Components First | PASS — no UI changes |
+| V. Test Coverage | PASS — integration test validates atomicity; E2E covers happy path |
