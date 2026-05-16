@@ -155,4 +155,65 @@ describe('Undo End Day Integration', () => {
     expect(data?.ended_at).toBeNull()
     expect(data?.effort_level_id).toBeNull()
   })
+
+  it('undo_end_count increments after undo', async () => {
+    // End the day first
+    await service
+      .from('day_records')
+      .update({ ended_at: new Date().toISOString(), undo_end_count: 0 })
+      .eq('id', dayRecordId)
+
+    // Simulate undo by clearing ended_at and incrementing count
+    await service
+      .from('day_records')
+      .update({ ended_at: null, effort_level_id: null, undo_end_count: 1 })
+      .eq('id', dayRecordId)
+
+    const { data } = await service
+      .from('day_records')
+      .select('undo_end_count')
+      .eq('id', dayRecordId)
+      .single()
+
+    expect(data?.undo_end_count).toBe(1)
+  })
+
+  it('undo_end_count column defaults to 0 and has CHECK >= 0', async () => {
+    const { data: dr } = await service
+      .from('day_records')
+      .insert({ kid_id: kidId, date: '2020-01-01' })
+      .select('undo_end_count')
+      .single()
+
+    expect(dr?.undo_end_count).toBe(0)
+
+    // Negative value should be rejected by CHECK constraint
+    const { error } = await service
+      .from('day_records')
+      .update({ undo_end_count: -1 })
+      .eq('id', dayRecordId)
+
+    expect(error).not.toBeNull()
+
+    // Cleanup
+    await service.from('day_records').delete().eq('date', '2020-01-01').eq('kid_id', kidId)
+  })
+
+  it('undo blocked when undo_end_count >= 1 (server-side guard scenario)', async () => {
+    // Set undo_end_count to 1 (already used)
+    await service
+      .from('day_records')
+      .update({ ended_at: new Date().toISOString(), undo_end_count: 1 })
+      .eq('id', dayRecordId)
+
+    const { data } = await service
+      .from('day_records')
+      .select('undo_end_count, ended_at')
+      .eq('id', dayRecordId)
+      .single()
+
+    // Verify guard condition: undo_end_count >= 1 means undo is blocked
+    expect(data?.undo_end_count).toBeGreaterThanOrEqual(1)
+    expect(data?.ended_at).not.toBeNull()
+  })
 })

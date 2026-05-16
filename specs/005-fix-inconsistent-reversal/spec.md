@@ -66,6 +66,7 @@ The UI clearly communicates when an undo is available vs. exhausted, across both
 - What happens if a chore is unchecked on a day that hasn't been ended? The uncheck count increments normally. The one-undo limit applies regardless of end-day state.
 - What happens if the app is used offline and syncs later? Standard Supabase sync behavior applies; undo counts are tracked server-side.
 - What happens if a kid purchased a rest day and then ended the day, then undoes end-day? The rest day purchase is NOT reversed by undo end-day. Rest day is a separate action with its own independent undo (once per day).
+- What happens to undo rest day after the day has been ended? Undo rest day is only available before the day is ended. Once the day is ended, the "Undo Rest Day" button is no longer shown — the rest day action section is hidden when `ended_at` is set. This is intentional: rest day decisions should be finalized before ending the day.
 
 ## Requirements *(mandatory)*
 

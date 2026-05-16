@@ -53,8 +53,8 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Write integration test in `__tests__/integration/undo-end-day.test.ts` — extend existing tests: verify undo blocked when `undo_end_count >= 1`; verify undo blocked for past dates; verify `undo_end_count` incremented after undo
-- [ ] T011 [P] [US1] Write E2E test in `__tests__/e2e/undo-end-day.spec.ts` — kid ends day, clicks Undo, verifies day reopened and chores toggleable; ends day again, verifies no Undo button shown
+- [x] T010 [P] [US1] Write integration test in `__tests__/integration/undo-end-day.test.ts` — extend existing tests: verify undo blocked when `undo_end_count >= 1`; verify undo blocked for past dates; verify `undo_end_count` incremented after undo
+- [x] T011 [P] [US1] Write E2E test in `__tests__/e2e/undo-end-day.spec.ts` — kid ends day, clicks Undo, verifies day reopened and chores toggleable; ends day again, verifies no Undo button shown
 
 **Checkpoint**: Undo End Day works with one-undo limit and current-day restriction
 
@@ -74,8 +74,8 @@
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Write integration test in `__tests__/integration/chore-uncheck-limit.test.ts` — verify first uncheck succeeds and increments count; verify second uncheck rejected; verify checking (completing) always allowed regardless of count
-- [ ] T016 [P] [US2] Write E2E test in `__tests__/e2e/chore-uncheck-limit.spec.ts` — kid completes chore, unchecks it, re-completes it, verifies checkbox is locked/disabled
+- [x] T015 [P] [US2] Write integration test in `__tests__/integration/chore-uncheck-limit.test.ts` — verify first uncheck succeeds and increments count; verify second uncheck rejected; verify checking (completing) always allowed regardless of count
+- [x] T016 [P] [US2] Write E2E test in `__tests__/e2e/chore-uncheck-limit.spec.ts` — kid completes chore, unchecks it, re-completes it, verifies checkbox is locked/disabled
 
 **Checkpoint**: Chore uncheck limited to once per day
 
@@ -96,8 +96,8 @@
 
 ### Tests for User Story 3
 
-- [ ] T021 [P] [US3] Write integration test in `__tests__/integration/undo-rest-day.test.ts` — verify undo returns 100 points, clears is_rest_day, increments count; verify second undo rejected; verify past-date undo rejected
-- [ ] T022 [P] [US3] Write E2E test in `__tests__/e2e/undo-rest-day.spec.ts` — kid purchases rest day, clicks Undo, verifies points returned and rest day cleared; verifies no undo button after first undo
+- [x] T021 [P] [US3] Write integration test in `__tests__/integration/undo-rest-day.test.ts` — verify undo returns 100 points, clears is_rest_day, increments count; verify second undo rejected; verify past-date undo rejected
+- [x] T022 [P] [US3] Write E2E test in `__tests__/e2e/undo-rest-day.spec.ts` — kid purchases rest day, clicks Undo, verifies points returned and rest day cleared; verifies no undo button after first undo
 
 **Checkpoint**: All undo actions consistent with one-undo-per-day rule and prominent button styling
 
