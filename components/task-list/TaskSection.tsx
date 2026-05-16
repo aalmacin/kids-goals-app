@@ -7,12 +7,13 @@ import type { TaskWithCounts } from '@/lib/types'
 
 interface TaskSectionProps {
   tasks: TaskWithCounts[]
+  isEnded: boolean
 }
 
-export function TaskSection({ tasks }: TaskSectionProps) {
+export function TaskSection({ tasks, isEnded }: TaskSectionProps) {
   const [open, setOpen] = useState(false)
 
-  if (tasks.length === 0) return null
+  if (isEnded || tasks.length === 0) return null
 
   return (
     <div className="space-y-3">

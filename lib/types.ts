@@ -43,6 +43,7 @@ export type ChoreCompletion = {
   isImportantSnapshot: boolean
   rewardSnapshot: number
   completedAt: string | null
+  uncheckCount: number
 }
 
 export type DayRecord = {
@@ -50,7 +51,6 @@ export type DayRecord = {
   kidId: string
   date: string
   isRestDay: boolean
-  effortLevelId: string | null
   endedAt: string | null
   choreCompletions: ChoreCompletion[]
 }
@@ -62,13 +62,6 @@ export type Reward = {
   pointsCost: number
   icon: string
   deletedAt: string | null
-}
-
-export type EffortLevel = {
-  id: string
-  familyId: string
-  name: string
-  points: number
 }
 
 export type Task = {
@@ -117,6 +110,10 @@ export type ActivityLogEntry = {
     | 'chore_completion_reward_reversed'
     | 'task_completed'
     | 'task_completion_reversed'
+    | 'day_undone'
+    | 'penalty_reversed'
+    | 'effort_reversed'
+    | 'rest_day_reversed'
   metadata: Record<string, unknown>
   pointsDelta: number | null
   createdAt: string

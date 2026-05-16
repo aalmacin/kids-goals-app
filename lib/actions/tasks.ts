@@ -11,6 +11,7 @@ import {
   undoLastTaskCompletion,
 } from '@/lib/db/tasks'
 import { insertActivityLog } from '@/lib/db/activity-log'
+import { todayInTimezone } from '@/lib/chore-schedule'
 
 async function requireParentFamily() {
   const supabase = await createSupabaseServerClient()
@@ -77,6 +78,16 @@ export async function deleteTaskAction(taskId: string): Promise<void> {
 
 export async function completeTaskAction(taskId: string): Promise<void> {
   const { supabase, kid } = await requireKid()
+
+  const familyTimezone = await getFamilyTimezone(kid.family_id)
+  const today = todayInTimezone(familyTimezone)
+  const { data: todayRecord } = await supabase
+    .from('day_records')
+    .select('ended_at')
+    .eq('kid_id', kid.id)
+    .eq('date', today)
+    .maybeSingle()
+  if (todayRecord?.ended_at) throw new Error('Cannot complete tasks after ending the day')
 
   const { data: task, error: taskError } = await supabase
     .from('tasks')

@@ -26,16 +26,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/admin/effort">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="text-lg">Effort Levels</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-sm">Set rewards for daily effort</p>
-            </CardContent>
-          </Card>
-        </Link>
         <Link href="/admin/rewards">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>

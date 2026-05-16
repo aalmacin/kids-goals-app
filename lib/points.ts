@@ -1,4 +1,4 @@
-import type { ChoreCompletion, EffortLevel } from './types'
+import type { ChoreCompletion } from './types'
 
 export const REST_DAY_COST = 100
 
@@ -17,13 +17,6 @@ export function calculatePenalties(
       return true
     })
     .reduce((sum, c) => sum + c.penaltySnapshot, 0)
-}
-
-/**
- * Calculate effort reward points. Returns 0 if no effort level selected.
- */
-export function calculateEffortReward(effortLevel: EffortLevel | null): number {
-  return effortLevel?.points ?? 0
 }
 
 /**

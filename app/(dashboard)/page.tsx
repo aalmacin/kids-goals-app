@@ -6,10 +6,9 @@ import { ChoreList } from '@/components/chore-list/ChoreList'
 import { UnavailableChoreSection } from '@/components/chore-list/UnavailableChoreSection'
 import { TaskSection } from '@/components/task-list/TaskSection'
 import { EndDayButton } from '@/components/end-day/EndDayButton'
-import { UndoEndDayButton } from '@/components/end-day/UndoEndDayButton'
 import { RestDayButton } from '@/components/rest-day/RestDayButton'
 import { isChoreAvailableOn, dayOfWeekFromDate, getNextAvailableDate, todayInTimezone } from '@/lib/chore-schedule'
-import type { ChoreCompletion, EffortLevel } from '@/lib/types'
+import type { ChoreCompletion } from '@/lib/types'
 
 export default async function DashboardPage({
   searchParams,
@@ -102,22 +101,10 @@ export default async function DashboardPage({
     isImportantSnapshot: c.is_important_snapshot,
     rewardSnapshot: c.reward_snapshot,
     completedAt: c.completed_at,
+    uncheckCount: c.uncheck_count,
   }))
 
   // Fetch effort levels for end-day
-  const { data: effortLevels } = await supabase
-    .from('effort_levels')
-    .select()
-    .eq('family_id', kid.family_id)
-    .order('points', { ascending: false })
-
-  const typedEffortLevels: EffortLevel[] = (effortLevels ?? []).map((e) => ({
-    id: e.id,
-    familyId: e.family_id,
-    name: e.name,
-    points: e.points,
-  }))
-
   const allChoresDone = completions.every((c) => c.completedAt !== null)
   const isEnded = dayRecord.ended_at !== null
   const isToday = date === today
@@ -142,11 +129,8 @@ export default async function DashboardPage({
           )}
         </div>
         {isEnded && (
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
-              Day Ended ✓
-            </div>
-            <UndoEndDayButton dayRecordId={dayRecord.id} />
+          <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
+            Day Ended ✓
           </div>
         )}
       </div>
@@ -163,7 +147,7 @@ export default async function DashboardPage({
       <UnavailableChoreSection chores={unavailableChores} />
 
       {/* Tasks (repeated only — one-time tasks have their own page) */}
-      <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} />
+      <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} isEnded={isEnded} />
 
       {/* Actions (only if not ended) */}
       {!isEnded && (
@@ -175,7 +159,6 @@ export default async function DashboardPage({
           />
           <EndDayButton
             dayRecordId={dayRecord.id}
-            effortLevels={typedEffortLevels}
             allChoresDone={allChoresDone}
           />
         </div>
