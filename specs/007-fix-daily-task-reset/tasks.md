@@ -18,7 +18,7 @@ Unit tests for `getTodayStart` are included per research.md findings.
 
 **⚠️ CRITICAL**: Both user stories depend on this fix.
 
-- [ ] T001 Fix `getTodayStart` in `lib/db/tasks.ts` to derive the UTC offset from the family's timezone using `Intl.DateTimeFormat` with `timeZoneName: 'longOffset'` and append it to the ISO 8601 datetime string so midnight is always computed in the family's timezone, not server local time
+- [x] T001 Fix `getTodayStart` in `lib/db/tasks.ts` to derive the UTC offset from the family's timezone using `Intl.DateTimeFormat` with `timeZoneName: 'longOffset'` and append it to the ISO 8601 datetime string so midnight is always computed in the family's timezone, not server local time
 
 **Checkpoint**: Foundation ready — `getTodayStart("America/New_York")` now returns UTC midnight in New York, not UTC midnight.
 
@@ -32,13 +32,13 @@ Unit tests for `getTodayStart` are included per research.md findings.
 
 ### Tests for User Story 1
 
-- [ ] T002 [P] [US1] Add unit tests for `getTodayStart` covering UTC, positive offset (e.g., Asia/Kolkata +05:30), negative offset (e.g., America/New_York -04:00), and half-hour offset timezones in `__tests__/unit/task-completion-guard.test.ts`
-- [ ] T003 [P] [US1] Add E2E test scenario "once-per-day task resets the next day" to `__tests__/e2e/repeated-task.spec.ts` — complete a once-per-day task, advance the system date by 1 day, verify task is available again
+- [x] T002 [P] [US1] Add unit tests for `getTodayStart` covering UTC, positive offset (e.g., Asia/Kolkata +05:30), negative offset (e.g., America/New_York -04:00), and half-hour offset timezones in `__tests__/unit/task-completion-guard.test.ts`
+- [x] T003 [P] [US1] Add E2E test scenario "once-per-day task resets the next day" to `__tests__/e2e/repeated-task.spec.ts` — complete a once-per-day task, advance the system date by 1 day, verify task is available again
 
 ### Verify User Story 1
 
-- [ ] T004 [US1] Run `bun vitest __tests__/unit/task-completion-guard.test.ts` and confirm all `getTodayStart` unit tests pass
-- [ ] T005 [US1] Run E2E test for once-per-day reset with `bunx playwright test __tests__/e2e/repeated-task.spec.ts` and confirm it passes
+- [x] T004 [US1] Run `bun vitest __tests__/unit/task-completion-guard.test.ts` and confirm all `getTodayStart` unit tests pass
+- [x] T005 [US1] Run E2E test for once-per-day reset with `bunx playwright test __tests__/e2e/repeated-task.spec.ts` and confirm it passes
 
 **Checkpoint**: User Story 1 complete — once-per-day tasks reset at midnight in the user's local timezone.
 
@@ -52,11 +52,11 @@ Unit tests for `getTodayStart` are included per research.md findings.
 
 ### Tests for User Story 2
 
-- [ ] T006 [P] [US2] Extend `__tests__/e2e/repeated-task.spec.ts` with a scenario "completed state does not persist across days" — seed a yesterday completion, view task list today, assert task appears uncompleted with no undo button
+- [x] T006 [P] [US2] Extend `__tests__/e2e/repeated-task.spec.ts` with a scenario "completed state does not persist across days" — seed a yesterday completion, view task list today, assert task appears uncompleted with no undo button
 
 ### Verify User Story 2
 
-- [ ] T007 [US2] Run `bunx playwright test __tests__/e2e/repeated-task.spec.ts` and confirm all daily-reset scenarios pass including US2 scenario
+- [x] T007 [US2] Run `bunx playwright test __tests__/e2e/repeated-task.spec.ts` and confirm all daily-reset scenarios pass including US2 scenario
 
 **Checkpoint**: User Stories 1 and 2 both pass — daily reset is correct and no stale UI state persists.
 
@@ -66,8 +66,8 @@ Unit tests for `getTodayStart` are included per research.md findings.
 
 **Purpose**: Confirm no regressions in existing task behavior.
 
-- [ ] T008 [P] Run full unit test suite with `bun vitest` and confirm all pre-existing tests still pass
-- [ ] T009 [P] Run full E2E suite with `bunx playwright test __tests__/e2e/` and confirm no regressions in `one-time-task.spec.ts`, `repeated-task.spec.ts`, and `admin-tasks.spec.ts`
+- [x] T008 [P] Run full unit test suite with `bun vitest` and confirm all pre-existing tests still pass
+- [x] T009 [P] Run full E2E suite with `bunx playwright test __tests__/e2e/` and confirm no regressions in `one-time-task.spec.ts`, `repeated-task.spec.ts`, and `admin-tasks.spec.ts`
 
 ---
 

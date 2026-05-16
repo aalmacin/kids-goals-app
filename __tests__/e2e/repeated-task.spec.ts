@@ -54,4 +54,37 @@ test.describe('Repeated Task Completion', () => {
     // Task should no longer be visible for the rest of the day
     await expect(page.getByText('Test Once Per Day Task')).not.toBeVisible()
   })
+
+  // US1: Daily task resets after midnight
+  test.skip('once-per-day task is available again the next calendar day', async ({ page }) => {
+    // Requires: task_completion row seeded with completed_at = yesterday midnight - 1 minute
+    // in the family's timezone, and family timezone set to America/New_York.
+    // The seed script sets completed_at to yesterday's date in the family timezone.
+    await page.goto('/kid-login')
+    // Task completed yesterday must appear as available today (not completed)
+    await expect(page.getByText('Test Once Per Day Task')).toBeVisible()
+    // The task must NOT show a completed/greyed state from yesterday
+    await expect(page.getByText('Test Once Per Day Task').locator('..')).not.toHaveAttribute(
+      'data-completed',
+      'true'
+    )
+    // And must NOT show an undo button from yesterday
+    await expect(page.getByLabel(/Undo last completion for Test Once Per Day Task/)).not.toBeVisible()
+  })
+
+  // US2: Completed state does not persist across days
+  test.skip('completed state and undo button do not persist to the next calendar day', async ({ page }) => {
+    // Requires: task_completion row seeded with completed_at = yesterday (family timezone).
+    // Family timezone: America/New_York. The seed inserts completed_at as
+    // yesterday 10 PM New York = yesterday 02:00 UTC (next UTC day).
+    // This validates that the NY-timezone boundary is used, not UTC midnight.
+    await page.goto('/kid-login')
+    // Task should appear in its uncompleted state
+    await expect(page.getByText('Test Once Per Day Task')).toBeVisible()
+    // No undo button from yesterday's session
+    await expect(page.getByLabel(/Undo last completion for Test Once Per Day Task/)).not.toBeVisible()
+    // Kid can complete it again today
+    await page.getByText('Test Once Per Day Task').click()
+    await expect(page.getByText('Test Once Per Day Task')).not.toBeVisible()
+  })
 })
