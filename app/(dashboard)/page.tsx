@@ -181,7 +181,7 @@ export default async function DashboardPage({
       <UnavailableChoreSection chores={unavailableChores} />
 
       {/* Tasks (repeated only — one-time tasks have their own page) */}
-      <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} />
+      <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} isEnded={isEnded} />
 
       {/* Actions (only if not ended) */}
       {!isEnded && (

@@ -70,6 +70,11 @@ describe('canUndoRestDay', () => {
     const dr = { ...baseDayRecord, date: '2026-05-14', isRestDay: true }
     expect(canUndoRestDay(dr, today)).toBe(false)
   })
+
+  it('returns false when the day has been ended', () => {
+    const dr = { ...baseDayRecord, isRestDay: true, endedAt: '2026-05-15T18:00:00Z' }
+    expect(canUndoRestDay(dr, today)).toBe(false)
+  })
 })
 
 describe('canUncheckChore', () => {

@@ -12,7 +12,8 @@ export function canUndoRestDay(dayRecord: DayRecord, today: string): boolean {
   return (
     dayRecord.isRestDay &&
     dayRecord.undoRestDayCount === 0 &&
-    dayRecord.date === today
+    dayRecord.date === today &&
+    dayRecord.endedAt === null
   )
 }
 

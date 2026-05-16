@@ -111,15 +111,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [P] [US4] Fix `canUndoRestDay` in `lib/undo-eligibility.ts` — add `&& dayRecord.endedAt === null` condition so eligibility is false when the day has ended (spec: "Undo rest day is only available before the day is ended")
-- [ ] T026 [P] [US4] Add server-side guard to `completeTaskAction` in `lib/actions/tasks.ts` — after getting `kid`, fetch today's `day_records` row (`date` = today in family timezone) and throw `'Cannot complete tasks after ending the day'` if `ended_at` is non-null; reuse `todayInTimezone` from `lib/chore-schedule.ts` and `getFamilyTimezone` already in the file
-- [ ] T027 [US4] Update `components/task-list/TaskSection.tsx` — add `isEnded: boolean` prop; return `null` when `isEnded` is true (entire section hidden when day is ended)
-- [ ] T028 [US4] Update `app/(dashboard)/page.tsx` — pass `isEnded={isEnded}` to `TaskSection` component
+- [x] T025 [P] [US4] Fix `canUndoRestDay` in `lib/undo-eligibility.ts` — add `&& dayRecord.endedAt === null` condition so eligibility is false when the day has ended (spec: "Undo rest day is only available before the day is ended")
+- [x] T026 [P] [US4] Add server-side guard to `completeTaskAction` in `lib/actions/tasks.ts` — after getting `kid`, fetch today's `day_records` row (`date` = today in family timezone) and throw `'Cannot complete tasks after ending the day'` if `ended_at` is non-null; reuse `todayInTimezone` from `lib/chore-schedule.ts` and `getFamilyTimezone` already in the file
+- [x] T027 [US4] Update `components/task-list/TaskSection.tsx` — add `isEnded: boolean` prop; return `null` when `isEnded` is true (entire section hidden when day is ended)
+- [x] T028 [US4] Update `app/(dashboard)/page.tsx` — pass `isEnded={isEnded}` to `TaskSection` component
 
 ### Tests for User Story 4
 
-- [ ] T029 [P] [US4] Add unit test in `__tests__/unit/undo-eligibility.test.ts` — extend existing suite with cases for `canUndoRestDay` when `endedAt` is set: verify returns `false` even when `isRestDay=true`, `undoRestDayCount=0`, and `date==today`
-- [ ] T030 [P] [US4] Write E2E test in `__tests__/e2e/task-locked-after-end-day.spec.ts` — kid completes a repeated task (verifying it appears), then ends the day; verify the Tasks section is no longer visible; undo end day; verify Tasks section reappears
+- [x] T029 [P] [US4] Add unit test in `__tests__/unit/undo-eligibility.test.ts` — extend existing suite with cases for `canUndoRestDay` when `endedAt` is set: verify returns `false` even when `isRestDay=true`, `undoRestDayCount=0`, and `date==today`
+- [x] T030 [P] [US4] Write E2E test in `__tests__/e2e/task-locked-after-end-day.spec.ts` — kid completes a repeated task (verifying it appears), then ends the day; verify the Tasks section is no longer visible; undo end day; verify Tasks section reappears
 
 **Checkpoint**: After ending the day, the Tasks section is hidden and task completion is blocked server-side
 
@@ -129,7 +129,7 @@
 
 - [x] T023 Update `components/activity-log/ActivityLogTable.tsx` — add display labels for `rest_day_reversed` action type
 - [x] T024 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions
-- [ ] T031 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions after US4 changes
+- [x] T031 Run all tests (`bun vitest` and `bun playwright test`) and verify no regressions after US4 changes
 
 ---
 
