@@ -64,10 +64,11 @@ Unit tests for `getTodayStart` are included per research.md findings.
 
 ## Phase 4: Polish & Validation
 
-**Purpose**: Confirm no regressions in existing task behavior.
+**Purpose**: Confirm no regressions in existing task behavior and satisfy Constitution Principle V.
 
 - [x] T008 [P] Run full unit test suite with `bun vitest` and confirm all pre-existing tests still pass
 - [x] T009 [P] Run full E2E suite with `bunx playwright test __tests__/e2e/` and confirm no regressions in `one-time-task.spec.ts`, `repeated-task.spec.ts`, and `admin-tasks.spec.ts`
+- [ ] T010 Implement Playwright seed fixture for once-per-day daily-reset E2E scenarios in `__tests__/e2e/fixtures/auth.ts` (or a dedicated `tasks.ts` fixture): seed a `task_completion` row with `completed_at` set to yesterday in the family timezone, then unskip the "resets next day" and "completed state does not persist" scenarios in `__tests__/e2e/repeated-task.spec.ts`
 
 ---
 

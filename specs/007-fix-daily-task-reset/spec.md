@@ -48,7 +48,7 @@ A child who completed a daily task yesterday sees the task in its default (uncom
 
 ### Functional Requirements
 
-- **FR-001**: System MUST determine daily task availability by comparing the most recent completion date against the current calendar day in the user's local timezone.
+- **FR-001**: System MUST determine daily task availability by comparing the most recent completion date against the current calendar day in the family's timezone.
 - **FR-002**: Once-per-day tasks MUST become available again when the current date is after the date of the last completion.
 - **FR-003**: The completed/unavailable state for daily tasks MUST only apply within the same calendar day as the last completion.
 - **FR-004**: The undo button for daily task completions MUST only be shown on the same calendar day as the completion.
