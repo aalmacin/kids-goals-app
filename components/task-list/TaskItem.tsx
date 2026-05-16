@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +12,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { completeTaskAction, undoLastTaskCompletionAction } from '@/lib/actions/tasks'
 import { Check, Repeat, Undo2 } from 'lucide-react'
@@ -26,6 +25,8 @@ interface TaskItemProps {
 export function TaskItem({ task, todayCount }: TaskItemProps) {
   const [isPending, startTransition] = useTransition()
   const [isUndoPending, startUndoTransition] = useTransition()
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false)
 
   const { completedForNow } = task
   const remaining = task.remaining
@@ -33,6 +34,7 @@ export function TaskItem({ task, todayCount }: TaskItemProps) {
 
   function handleComplete() {
     if (completedForNow) return
+    setCompleteDialogOpen(false)
     startTransition(async () => {
       await completeTaskAction(task.id)
     })
@@ -112,7 +114,7 @@ export function TaskItem({ task, todayCount }: TaskItemProps) {
             size="sm"
             onClick={(e) => {
               e.stopPropagation()
-              handleUndo()
+              setUndoDialogOpen(true)
             }}
             disabled={isUndoPending}
             className="h-8 px-2 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50"
@@ -126,40 +128,69 @@ export function TaskItem({ task, todayCount }: TaskItemProps) {
     </div>
   )
 
-  if (completedForNow) {
-    return card
-  }
-
-  if (isOneTime) {
-    return (
-      <AlertDialog>
-        <AlertDialogTrigger className="w-full text-left" disabled={isPending}>
-          {card}
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Complete &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You will earn <strong>{task.points} points</strong>. This task can only be completed once.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleComplete}>Complete Task</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    )
-  }
-
   return (
-    <button
-      type="button"
-      className="w-full text-left"
-      onClick={handleComplete}
-      disabled={isPending}
-    >
-      {card}
-    </button>
+    <>
+      {/* Undo confirmation dialog — controlled via state to avoid nesting */}
+      {todayCount > 0 && (
+        <AlertDialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Undo &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will deduct <strong>{task.points} points</strong> from your balance.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleUndo}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Undo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Completion UI */}
+      {completedForNow ? (
+        card
+      ) : (
+        <>
+          {/* div[role="button"] avoids <button> inside <button> when the undo button is visible inside card */}
+          <div
+            role="button"
+            tabIndex={isPending ? -1 : 0}
+            aria-disabled={isPending}
+            className="w-full text-left cursor-pointer"
+            onClick={() => { if (!isPending) setCompleteDialogOpen(true) }}
+            onKeyDown={(e) => {
+              if (!isPending && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                setCompleteDialogOpen(true)
+              }
+            }}
+          >
+            {card}
+          </div>
+          <AlertDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Complete &ldquo;{task.name}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will earn <strong>{task.points} points</strong>.
+                  {isOneTime && ' This task can only be completed once.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleComplete}>Complete Task</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
+    </>
   )
 }

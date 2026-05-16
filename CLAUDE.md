@@ -3,5 +3,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/005-one-time-repeated-tasks/plan.md
+at specs/005-task-completion-confirmation/plan.md
 <!-- SPECKIT END -->

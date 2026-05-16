@@ -190,6 +190,35 @@ export async function undoLastTaskCompletion(
   return { pointsSnapshot: lastCompletion.points_snapshot }
 }
 
+export async function getCompletedOneTimeTasks(
+  kidId: string,
+  familyId: string
+): Promise<Task[]> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: completions, error: completionsError } = await supabase
+    .from('task_completions')
+    .select('task_id')
+    .eq('kid_id', kidId)
+
+  if (completionsError) throw completionsError
+  if (!completions || completions.length === 0) return []
+
+  const completedTaskIds = [...new Set(completions.map((c) => c.task_id))]
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select()
+    .eq('family_id', familyId)
+    .eq('task_type', 'one_time')
+    .in('id', completedTaskIds)
+    .is('deleted_at', null)
+    .order('name')
+
+  if (error) throw error
+  return data.map(mapTask)
+}
+
 function getTodayStart(timezone: string): Date {
   const now = new Date()
   const formatter = new Intl.DateTimeFormat('en-CA', {

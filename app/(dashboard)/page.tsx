@@ -162,8 +162,8 @@ export default async function DashboardPage({
       {/* Unavailable chores (schedule-blocked for today) */}
       <UnavailableChoreSection chores={unavailableChores} />
 
-      {/* Tasks */}
-      <TaskSection tasks={availableTasks} />
+      {/* Tasks (repeated only — one-time tasks have their own page) */}
+      <TaskSection tasks={availableTasks.filter((t) => t.taskType === 'repeated')} />
 
       {/* Actions (only if not ended) */}
       {!isEnded && (
