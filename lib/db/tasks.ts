@@ -219,14 +219,24 @@ export async function getCompletedOneTimeTasks(
   return data.map(mapTask)
 }
 
-function getTodayStart(timezone: string): Date {
+export function getTodayStart(timezone: string): Date {
   const now = new Date()
-  const formatter = new Intl.DateTimeFormat('en-CA', {
+  const dateStr = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  })
-  const dateStr = formatter.format(now)
-  return new Date(`${dateStr}T00:00:00`)
+  }).format(now)
+
+  const tzName =
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(now)
+      .find((p) => p.type === 'timeZoneName')?.value ?? 'GMT'
+
+  // "GMT-04:00" → "-04:00", "GMT+05:30" → "+05:30", "GMT" → "+00:00"
+  const offset = tzName === 'GMT' ? '+00:00' : tzName.slice(3)
+  return new Date(`${dateStr}T00:00:00${offset}`)
 }

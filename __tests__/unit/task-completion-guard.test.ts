@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { getTodayStart } from '@/lib/db/tasks'
 
 // Pure logic extracted from completeTaskAction for unit testing
 function checkTaskAvailability(
@@ -136,5 +137,57 @@ describe('checkUndoAvailability', () => {
       available: false,
       reason: 'No completion to undo today',
     })
+  })
+})
+
+// Set noon UTC on a known date so local-date calculations are stable across timezones
+const FIXED_NOW = '2026-05-15T12:00:00Z'
+
+describe('getTodayStart — timezone boundary correctness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(FIXED_NOW))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns midnight UTC for the UTC timezone', () => {
+    expect(getTodayStart('UTC').toISOString()).toBe('2026-05-15T00:00:00.000Z')
+  })
+
+  it('returns correct midnight for negative offset (America/New_York, EDT -04:00)', () => {
+    // Noon UTC on May 15 = 8 AM in New York (EDT) → local date May 15
+    // Midnight May 15 in New York (UTC-4) = 04:00 UTC
+    expect(getTodayStart('America/New_York').toISOString()).toBe('2026-05-15T04:00:00.000Z')
+  })
+
+  it('returns correct midnight for positive offset (Asia/Kolkata, IST +05:30)', () => {
+    // Noon UTC on May 15 = 5:30 PM in Kolkata (IST) → local date May 15
+    // Midnight May 15 in Kolkata (UTC+5:30) = May 14 18:30 UTC
+    expect(getTodayStart('Asia/Kolkata').toISOString()).toBe('2026-05-14T18:30:00.000Z')
+  })
+
+  it('returns correct midnight for whole positive offset (Asia/Tokyo, JST +09:00)', () => {
+    // Noon UTC on May 15 = 9 PM in Tokyo (JST) → local date May 15
+    // Midnight May 15 in Tokyo (UTC+9) = May 14 15:00 UTC
+    expect(getTodayStart('Asia/Tokyo').toISOString()).toBe('2026-05-14T15:00:00.000Z')
+  })
+
+  it('treats a completion from yesterday (local time) as not today', () => {
+    // In New York (EDT, UTC-4): midnight May 15 = 04:00 UTC
+    // Completion at 11 PM May 14 in New York = 03:00 UTC on May 15
+    const todayStart = getTodayStart('America/New_York')
+    const yesterdayLocalCompletion = new Date('2026-05-15T03:00:00Z')
+    expect(yesterdayLocalCompletion < todayStart).toBe(true)
+  })
+
+  it('treats a completion from today (local time) as today', () => {
+    // In New York (EDT, UTC-4): midnight May 15 = 04:00 UTC
+    // Completion at 1 AM May 15 in New York = 05:00 UTC on May 15
+    const todayStart = getTodayStart('America/New_York')
+    const todayLocalCompletion = new Date('2026-05-15T05:00:00Z')
+    expect(todayLocalCompletion >= todayStart).toBe(true)
   })
 })
