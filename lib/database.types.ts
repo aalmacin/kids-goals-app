@@ -426,7 +426,14 @@ export type Database = {
     Views: Record<string, never>
     // apply_points_delta was dropped in migration 0006_event_sourcing.sql;
     // kids.points is now maintained by the after_activity_log_insert trigger.
-    Functions: Record<string, never>
+    Functions: {
+      end_day: {
+        Args: {
+          p_day_record_id: string
+        }
+        Returns: Json
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }

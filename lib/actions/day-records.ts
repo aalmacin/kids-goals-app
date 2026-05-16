@@ -3,23 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOrCreateDayRecord, toggleChoreCompletion } from '@/lib/db/day-records'
-import { calculatePenalties, calculateChoreRewards } from '@/lib/points'
 import { isChoreAvailableOn, dayOfWeekFromDate } from '@/lib/chore-schedule'
-import type { ChoreCompletion } from '@/lib/types'
-
-async function getCurrentKid() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: kid } = await supabase
-    .from('kids')
-    .select('id, family_id, points')
-    .eq('supabase_user_id', user.id)
-    .maybeSingle()
-
-  return { user, kid, supabase }
-}
 
 export async function getDayRecord(kidId: string, date: string) {
   return getOrCreateDayRecord(kidId, date)
@@ -152,83 +136,11 @@ export async function declareRestDay(dayRecordId: string) {
 
 export async function endDay(dayRecordId: string) {
   const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
 
-  // Check not already ended
-  const { data: dayRecord } = await supabase
-    .from('day_records')
-    .select('ended_at, kid_id, is_rest_day')
-    .eq('id', dayRecordId)
-    .single()
-
-  if (dayRecord?.ended_at) return { success: true } // idempotent
-
-  const kidId = dayRecord!.kid_id
-
-  const { data: kid } = await supabase
-    .from('kids')
-    .select('family_id')
-    .eq('id', kidId)
-    .single()
-
-  // Get completions for penalty calculation
-  const { data: rawCompletions } = await supabase
-    .from('chore_completions')
-    .select()
-    .eq('day_record_id', dayRecordId)
-
-  const completions: ChoreCompletion[] = (rawCompletions ?? []).map((c) => ({
-    id: c.id,
-    dayRecordId: c.day_record_id,
-    choreAssignmentId: c.chore_assignment_id,
-    choreNameSnapshot: c.chore_name_snapshot,
-    penaltySnapshot: c.penalty_snapshot,
-    isImportantSnapshot: c.is_important_snapshot,
-    rewardSnapshot: c.reward_snapshot,
-    completedAt: c.completed_at,
-    uncheckCount: c.uncheck_count,
-  }))
-
-  const totalPenalty = calculatePenalties(completions, dayRecord!.is_rest_day)
-
-  // Apply penalty
-  if (totalPenalty > 0) {
-    await supabase.from('activity_log').insert({
-      family_id: kid!.family_id,
-      kid_id: kidId,
-      actor_type: 'kid' as const,
-      action_type: 'penalty_applied' as const,
-      metadata: { day_record_id: dayRecordId, total_penalty: totalPenalty },
-      points_delta: -totalPenalty,
-    })
-  }
-
-  // Grant reward points for each completed chore with reward_snapshot > 0
-  const choreRewards = calculateChoreRewards(completions)
-  for (const { completion, reward } of choreRewards) {
-    await supabase.from('activity_log').insert({
-      family_id: kid!.family_id,
-      kid_id: kidId,
-      actor_type: 'kid' as const,
-      action_type: 'chore_completion_reward' as const,
-      metadata: { chore_name: completion.choreNameSnapshot, completion_id: completion.id },
-      points_delta: reward,
-    })
-  }
-
-  // Mark day as ended
-  await supabase
-    .from('day_records')
-    .update({ ended_at: new Date().toISOString() })
-    .eq('id', dayRecordId)
-
-  await supabase.from('activity_log').insert({
-    family_id: kid!.family_id,
-    kid_id: kidId,
-    actor_type: 'kid' as const,
-    action_type: 'day_ended' as const,
-    metadata: { day_record_id: dayRecordId },
-    points_delta: null,
-  })
+  const { error } = await supabase.rpc('end_day', { p_day_record_id: dayRecordId })
+  if (error) throw new Error(error.message)
 
   revalidatePath('/')
   return { success: true }

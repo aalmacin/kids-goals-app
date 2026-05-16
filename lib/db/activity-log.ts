@@ -38,5 +38,7 @@ export async function getActivityLog(
 
   const { data, error } = await query
   if (error) throw error
-  return data as ActivityLogRow[]
+  // The kid:kids(name) join is not reflected in Relationships (NoRelationships),
+  // so Supabase's type inference returns SelectQueryError for the kid field.
+  return data as unknown as ActivityLogRow[]
 }
