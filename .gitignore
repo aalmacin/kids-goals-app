@@ -20,6 +20,9 @@
 # production
 /build
 
+# serwist generated service worker
+/public/sw.js
+
 # misc
 .DS_Store
 *.pem
