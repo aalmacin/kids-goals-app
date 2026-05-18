@@ -23,7 +23,7 @@ export default async function FamilyPage() {
   if (!kid) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const sevenDaysAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const familyId = kid.family_id ?? ''
 

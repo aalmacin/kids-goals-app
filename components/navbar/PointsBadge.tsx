@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Star } from 'lucide-react'
@@ -11,13 +11,8 @@ interface PointsBadgeProps {
   kidId: string
 }
 
-export function PointsBadge({ points: initialPoints, kidId }: PointsBadgeProps) {
-  const [points, setPoints] = useState(initialPoints)
+export function PointsBadge({ points, kidId }: PointsBadgeProps) {
   const queryClient = useQueryClient()
-
-  useEffect(() => {
-    setPoints(initialPoints)
-  }, [initialPoints])
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -26,9 +21,7 @@ export function PointsBadge({ points: initialPoints, kidId }: PointsBadgeProps) 
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'kids', filter: `id=eq.${kidId}` },
-        (payload) => {
-          const newPoints = (payload.new as { points: number }).points
-          setPoints(newPoints)
+        () => {
           queryClient.invalidateQueries({ queryKey: ['points', kidId] })
         }
       )
