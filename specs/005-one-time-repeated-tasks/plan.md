@@ -1,46 +1,37 @@
-# Implementation Plan: One-Time and Repeated Tasks
+# Implementation Plan: One-Time and Repeated Tasks — Edit Support
 
-**Branch**: `005-one-time-repeated-tasks` | **Date**: 2026-05-14 | **Spec**: [spec.md](./spec.md)
+**Branch**: `005-add-missing-edits` | **Date**: 2026-05-15 | **Spec**: `specs/005-one-time-repeated-tasks/spec.md`
 **Input**: Feature specification from `/specs/005-one-time-repeated-tasks/spec.md`
 
 ## Summary
 
-Implement one-time and repeated task types for kids to complete and earn points. The feature includes:
-- Two task types: `one_time` (completable once per kid, confirmation dialog required) and `repeated` (completable multiple times, optional per-total or per-day limit)
-- Daily completion count display on the kid dashboard so kids can see how many times they've done a task today
-- Undo functionality for all task completions (accidental click recovery) — same-day only, works for both one-time and repeated tasks
-- A new "once per day" flag on repeated tasks that prevents re-selection the same calendar day
-- Parent admin UI (task CRUD) and kid dashboard task list
-
-**Technical approach**: New `tasks` and `task_completions` tables with RLS, Server Actions for mutations, SSR dashboard page with completion counts passed to client components.
-
----
+The core task feature (one-time and repeated tasks with creation, completion, undo, and deletion) is already fully implemented. This plan covers the remaining gap: **task editing** — allowing parents to update a task's name and point value while keeping type, once_per_day, and max_completions immutable after creation. The snapshot pattern already in use ensures edits don't retroactively affect activity log entries.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (strict mode)
-**Primary Dependencies**: Next.js 16.2.4 (App Router, Server Actions), Supabase (Auth + PostgreSQL + RLS), shadcn/ui (Radix + Tailwind), TanStack (Query, Store, Table), Playwright, Vitest
-**Storage**: PostgreSQL via Supabase local (migrations in `supabase/migrations/`)
+**Language/Version**: TypeScript 5 (strict mode)
+**Primary Dependencies**: Next.js 16.2.4, React 19.2.4, Supabase JS 2.104.1, TanStack Query 5.100.5, shadcn/ui
+**Storage**: Supabase (PostgreSQL) with RLS
 **Testing**: Vitest (unit/integration), Playwright (E2E)
-**Target Platform**: Next.js web app (desktop + mobile responsive)
+**Target Platform**: Web (PWA)
 **Project Type**: Web application (Next.js App Router)
-**Performance Goals**: Page loads < 2s; task completion action < 500ms round-trip
-**Constraints**: All mutations via Server Actions (no `/api` routes); RLS enabled on all new tables; bun for all package commands
-**Scale/Scope**: Family-scale (< 10 kids per family, < 100 tasks per family)
-
----
+**Performance Goals**: Task edit < 1 second round-trip
+**Constraints**: RLS-enforced access control, snapshot-based historical data integrity
+**Scale/Scope**: Family-scale (< 100 tasks per family)
 
 ## Constitution Check
 
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns (Server Actions, no /api mutations, nonce CSP) | ✅ PASS | All mutations use Server Actions; CSP nonce already implemented globally |
-| II. Supabase Patterns (RLS on all tables, Supabase Auth, Realtime for live data) | ✅ PASS | RLS enabled on `tasks` and `task_completions`; no polling; real-time points via existing trigger |
-| III. TanStack First (Query for server state, Store for UI state) | ✅ PASS | TaskItem uses `useTransition` (React primitive, not a custom hook); no client-side server state needed beyond revalidation |
-| IV. shadcn Components First | ✅ PASS | AlertDialog, Button, Badge, Input, Label, Select, Card all used |
-| V. Test Coverage (E2E mandatory, unit for business logic, integration for RLS) | ✅ PASS | E2E tests explicitly planned for all user stories; unit tests for undo guard; integration tests for RLS policies |
+| I. Next.js Patterns | PASS | Server Actions for mutations, no API routes |
+| II. Supabase Patterns | PASS | RLS on tasks table, typed client, real-time for activity log |
+| III. TanStack First | PASS | TanStack Query for data fetching, TanStack Store for UI state |
+| IV. shadcn Components First | PASS | Edit dialog/form will use shadcn Dialog, Input, Button, Select |
+| V. Test Coverage | PASS | E2E test tasks will be included in tasks.md |
 
----
+No violations. No complexity tracking needed.
 
 ## Project Structure
 
@@ -49,96 +40,37 @@ Implement one-time and repeated task types for kids to complete and earn points.
 ```text
 specs/005-one-time-repeated-tasks/
 ├── plan.md              # This file
-├── research.md          # Phase 0 decisions
-├── data-model.md        # Entity definitions and schema changes
-├── quickstart.md        # Implementation guide
-├── contracts/
-│   └── server-actions.md  # Server action + DB query contracts
-└── tasks.md             # Task list (generated by /speckit-tasks)
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+└── tasks.md             # Phase 2 output (/speckit-tasks command)
 ```
 
 ### Source Code (repository root)
 
 ```text
-supabase/migrations/
-├── 0013_tasks.sql           # Existing: tasks + task_completions tables, RLS
-└── 0014_task_extensions.sql # NEW: once_per_day flag, undo RLS, reversal action_type
+app/
+├── (admin)/admin/tasks/page.tsx          # Task management page (add edit UI)
+├── (dashboard)/page.tsx                  # Kid dashboard (no changes needed)
 
 lib/
-├── types.ts                 # Add: oncePerDay to Task, TaskWithCounts, task_completion_reversed to ActionType
-├── db/
-│   └── tasks.ts             # Update: getAvailableTasksForKid returns TaskWithCounts; add undoLastTaskCompletion
-└── actions/
-    └── tasks.ts             # Update: createTaskAction (oncePerDay field); add undoLastTaskCompletionAction
+├── actions/tasks.ts                      # Add updateTaskAction
+├── db/tasks.ts                           # Add updateTask query
+├── types.ts                              # No changes (Task type already correct)
 
 components/
-└── task-list/
-    ├── TaskList.tsx          # Update: accept TaskWithCounts[] instead of Task[]
-    └── TaskItem.tsx          # Update: show todayCount badge + undo button for repeated tasks
+├── admin/
+│   ├── CreateTaskForm.tsx                # Existing (no changes)
+│   └── EditTaskDialog.tsx                # NEW: Edit dialog component
 
-app/
-├── (dashboard)/
-│   └── page.tsx             # Update: pass TaskWithCounts[] to TaskList
-└── (admin)/admin/
-    └── tasks/
-        └── page.tsx         # Update: add once_per_day checkbox to create form
-
-__tests__/
-├── unit/
-│   └── task-completion-guard.test.ts  # Update: cover once_per_day and undo cases
-├── integration/
-│   └── tasks.test.ts                  # Update: once_per_day filter, undo RLS, reversal log
-└── e2e/
-    ├── one-time-task.spec.ts          # Existing: update/extend
-    ├── repeated-task.spec.ts          # Existing: update — daily count, undo, once-per-day
-    └── admin-tasks.spec.ts            # Existing: update — once_per_day checkbox
+supabase/
+└── migrations/
+    └── (no new migration needed — existing parent_all_tasks RLS covers UPDATE)
 ```
 
----
+**Structure Decision**: Single Next.js app with Supabase backend. New code is minimal — one new component, one new server action, one new DB function, and potentially one migration for UPDATE RLS policy.
 
 ## Complexity Tracking
 
-No constitution violations. All patterns follow existing architecture.
-
----
-
-## Implementation Phases
-
-### Phase A: Database (Migration 0014)
-
-1. Add `once_per_day boolean NOT NULL DEFAULT false` to `tasks`
-2. Add `task_completion_reversed` to `activity_log` action_type CHECK constraint
-3. Add DELETE RLS policy on `task_completions` for kids (own rows only)
-
-### Phase B: Type & DB Layer
-
-1. Update `Task` type: add `oncePerDay: boolean`
-2. Add `TaskWithCounts` type: `Task & { todayCount: number, remaining: number | null, completedForNow: boolean }`
-3. Update `ActivityLogEntry.actionType`: add `'task_completion_reversed'`
-4. Update `getAvailableTasksForKid`: return `TaskWithCounts[]`, partition completions by today vs all-time; keep tasks completed today visible (with `completedForNow: true`) so the kid can undo them
-5. Add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` to `lib/db/tasks.ts`
-6. Update `createTask` signature to include `oncePerDay`
-
-### Phase C: Server Actions
-
-1. Update `createTaskAction`: parse and pass `oncePerDay` field
-2. Update `completeTaskAction`: enforce once_per_day constraint (check todayCount > 0 → reject)
-3. Add `undoLastTaskCompletionAction(taskId)`: fetch family timezone, verify completion is today, delete record, insert reversal log entry — works for all task types (no one-time restriction)
-
-### Phase D: UI Components
-
-1. Update `TaskList`: accept `TaskWithCounts[]`; group tasks by type (one-time vs repeatable) with section headers
-2. Update `TaskItem`:
-   - Colored icon circles (blue Check for one-time, green Repeat for repeated)
-   - Two-line layout: task name on top, badges below
-   - Show "Nx today" count pill for repeated tasks with `todayCount > 0`
-   - Show undo button (with Undo2 icon) when `todayCount > 0` for all task types
-   - Completed tasks (`completedForNow: true`) render with green border, strikethrough name, "done" badge, non-clickable card, but undo button still active
-3. Update dashboard page: pass `TaskWithCounts[]` to `TaskList`
-4. Update admin tasks page: add "Once per day" checkbox (shown for `repeated` type)
-
-### Phase E: Tests
-
-1. Unit: undo guard logic, once_per_day filter logic
-2. Integration: once_per_day DB filter, undo RLS policy, reversal activity_log entry
-3. E2E: daily count display, undo flow, once-per-day enforcement, admin once_per_day creation
+No constitution violations to justify.

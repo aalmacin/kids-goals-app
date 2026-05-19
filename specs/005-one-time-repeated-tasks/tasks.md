@@ -88,7 +88,7 @@
 **⚠️ CRITICAL**: No user story enhancement work (Phases 9–10) can begin until this phase is complete.
 
 - [x] T021 Update `lib/db/tasks.ts` — update `mapTask` to include `oncePerDay` from `once_per_day` column; update `getAvailableTasksForKid(kidId, familyId, familyTimezone)` to accept `familyTimezone` parameter, return `TaskWithCounts[]` with `todayCount` (partition completions by today vs all-time using family timezone), filter out `once_per_day` tasks where `todayCount > 0`; update `createTask` signature to accept `oncePerDay: boolean`; add `undoLastTaskCompletion(taskId, kidId, familyTimezone)` that deletes the most recent completion for today and returns `{ pointsSnapshot: number } | null`
-- [x] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, validate task is repeated, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`)
+- [x] T022 Update `lib/actions/tasks.ts` — update `createTaskAction` to parse `oncePerDay` from FormData (`'on'` → true, force false for one_time type); update `completeTaskAction` to fetch family timezone and enforce `once_per_day` guard (reject if `todayCount > 0` with error `'Task already completed today'`); add `undoLastTaskCompletionAction(taskId)` server action (require kid session, fetch family timezone, call `undoLastTaskCompletion`, insert `activity_log` with `action_type: 'task_completion_reversed'` and `points_delta: -pointsSnapshot`, `revalidatePath('/')`) — undo available for all task types
 
 **Checkpoint**: Foundation enhanced — UI work can now begin.
 
@@ -131,70 +131,78 @@
 
 ---
 
+## Phase 12: User Story 3 Extension — Task Editing (Priority: P3)
+
+**Goal**: A parent can edit an existing task's name and point value from the admin task list. Type, once_per_day, and max_completions are immutable after creation. Existing activity log entries retain their snapshot values.
+
+**Independent Test**: Log in as parent, create a task with 10 points, click edit, change name and points to 20, save — task list shows updated name and 20 points. Complete the edited task as a kid — activity log shows 20 points. Previous activity log entries still show the original 10 points.
+
+### Implementation for User Story 3 Extension
+
+- [x] T031 [P] [US3] Add `updateTask(taskId: string, name: string, points: number)` function in `lib/db/tasks.ts` — UPDATE only name and points columns on tasks table, scoped to the task ID
+- [x] T032 [P] [US3] Add `updateTaskAction(taskId: string, formData: FormData)` server action in `lib/actions/tasks.ts` — require parent auth, parse and validate name (non-empty) and points (integer > 0) from FormData, call `updateTask`, call `revalidatePath('/admin/tasks')`
+- [x] T033 [US3] Create `components/admin/EditTaskDialog.tsx` — shadcn Dialog with form fields for name (Input, required) and points (Input, type=number, min=1); pre-populated with current values; form action calls `updateTaskAction`; follow pattern from `components/edit-chore-dialog.tsx`
+- [x] T034 [US3] Update `app/(admin)/admin/tasks/page.tsx` — add edit button (Pencil icon from lucide-react) next to each task's delete button; render `EditTaskDialog` per task passing current task data; pass task list as client component props for dialog state
+- [x] T035 [P] [US3] Write E2E test `__tests__/e2e/admin-tasks.spec.ts` — test: edit task name and points, verify updated values in admin list; test: verify type/once_per_day/max_completions fields are not shown in edit dialog
+
+**Checkpoint**: Parents can edit task name and points. Snapshot integrity verified.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
 
 - **Phases 1–6 (Original)**: ✅ Complete
-- **Phase 7 (Setup Extensions)**: No dependencies on incomplete work — start immediately
-- **Phase 8 (Foundational Extensions)**: Depends on Phase 7 — BLOCKS all enhancement UI phases
-- **Phase 9 (US2 Extension)**: Depends on Phase 8
-- **Phase 10 (US3 Extension)**: Depends on Phase 8 — independent of Phase 9
-- **Phase 11 (Polish)**: Depends on Phases 9, 10
+- **Phase 7 (Setup Extensions)**: ✅ Complete
+- **Phase 8 (Foundational Extensions)**: ✅ Complete
+- **Phase 9 (US2 Extension)**: ✅ Complete
+- **Phase 10 (US3 Extension)**: ✅ Complete
+- **Phase 11 (Polish)**: ✅ Complete
+- **Phase 12 (Task Editing)**: No dependencies on incomplete work — can start immediately. Existing `parent_all_tasks` RLS covers UPDATE.
 
 ### User Story Dependencies
 
-- **US2 Extension (Phase 9)**: Requires Phase 8. Independent of US3 Extension.
-- **US3 Extension (Phase 10)**: Requires Phase 8. Independent of US2 Extension.
+- **US2 Extension (Phase 9)**: ✅ Complete
+- **US3 Extension (Phase 10)**: ✅ Complete
+- **US3 Edit Extension (Phase 12)**: No dependencies on other incomplete stories. Can start immediately.
 
-### Parallel Opportunities
+### Parallel Opportunities (Phase 12)
 
-- T019 and T020 run in parallel (different files)
-- Phase 9 and Phase 10 can run in parallel once Phase 8 is complete (different files)
-- T026 and T028 run in parallel (different test files)
-- T029 and T030 run in parallel (different test files)
+- T031 and T032 run in parallel (different files: db vs actions)
+- T033 depends on T032 (needs the server action to call)
+- T034 depends on T033 (needs the dialog component)
+- T035 runs in parallel with T034 (different file: E2E test)
 
 ---
 
-## Parallel Example: US2 Extension (Phase 9)
+## Parallel Example: Phase 12 (Task Editing)
 
 ```
-After T021 + T022 complete:
-  Sequential (same file chain):
-    T023 — TaskList.tsx (accept TaskWithCounts[])
-    T024 — TaskItem.tsx (todayCount badge + undo button)
-    T025 — page.tsx (pass familyTimezone + TaskWithCounts)
-  Then parallel:
-    T026 — E2E test (different file)
-```
-
-## Parallel Example: Phases 9 + 10 (after Phase 8)
-
-```
-After Phase 8 complete:
-  In parallel:
-    Stream A (US2): T023 → T024 → T025 + T026
-    Stream B (US3): T027 + T028
-  Then:
-    Phase 11: T029 ∥ T030
+Start immediately (all prior phases complete):
+  Parallel:
+    T031 — lib/db/tasks.ts (updateTask function)
+    T032 — lib/actions/tasks.ts (updateTaskAction)
+  Then sequential:
+    T033 — EditTaskDialog.tsx (depends on T032)
+    T034 — admin/tasks/page.tsx (depends on T033)
+  Parallel with T034:
+    T035 — E2E test (different file)
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP Enhancement (Daily Count + Undo Only)
+### Current State
 
-1. Complete Phase 7: Setup Extensions (T018–T020)
-2. Complete Phase 8: Foundational Extensions (T021–T022)
-3. Complete Phase 9: US2 Extension (T023–T026)
-4. **STOP and VALIDATE**: Kids see daily count, can undo accidental clicks
-5. Continue with Phase 10 + 11 for once-per-day admin support
+Phases 1–11 are complete. Only Phase 12 (Task Editing) remains.
 
-### Full Delivery
+### Delivery Plan
 
-1. Phase 7 → Phase 8 → Phases 9 + 10 (parallel) → Phase 11
-2. Each phase adds independently testable value
+1. Complete Phase 12: Task Editing (T031–T035)
+2. **VALIDATE**: Parent can edit task name/points, snapshots preserved
+3. Feature complete
 
 ---
 
@@ -204,5 +212,5 @@ After Phase 8 complete:
 - Constitution requires E2E tests for all user-facing flows — included in Phases 9 and 10
 - `undoLastTaskCompletionAction` only works for same-day completions (family timezone) — prevents gaming
 - `once_per_day` is stored as a boolean on `tasks` — avoids overloading `max_completions`
-- TaskItem undo button only appears for repeated tasks with `todayCount > 0`
+- TaskItem undo button appears for all task types (one-time and repeated) with `todayCount > 0`
 - Family timezone is already available on the dashboard page (used for chore schedule logic)

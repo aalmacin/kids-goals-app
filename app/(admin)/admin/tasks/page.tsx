@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateTaskForm } from '@/components/admin/CreateTaskForm'
+import { EditTaskDialog } from '@/components/admin/EditTaskDialog'
 import { Trash2 } from 'lucide-react'
 
 export default async function TasksPage() {
@@ -59,11 +60,14 @@ export default async function TasksPage() {
                   )}
                 </div>
               </div>
-              <form action={deleteTaskAction.bind(null, task.id)}>
-                <Button type="submit" variant="destructive" size="sm">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </form>
+              <div className="flex gap-2">
+                <EditTaskDialog task={task} />
+                <form action={deleteTaskAction.bind(null, task.id)}>
+                  <Button type="submit" variant="destructive" size="sm">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </form>
+              </div>
             </div>
           </Card>
         ))}

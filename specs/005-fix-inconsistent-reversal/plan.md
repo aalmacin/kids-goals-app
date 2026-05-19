@@ -1,42 +1,33 @@
 # Implementation Plan: Fix Inconsistent Reversal
 
-**Branch**: `005-fix-inconsistent-reversal` | **Date**: 2026-05-16 | **Spec**: [spec.md](./spec.md)
+**Branch**: `005-add-missing-edits` | **Date**: 2026-05-17 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/005-fix-inconsistent-reversal/spec.md`
-**User guidance**: Chore uncheck limits, hide tasks after End Day, End Day atomicity via PostgreSQL RPC
 
 ## Summary
 
-Three changes shipped in this branch:
-
-1. **Chore uncheck limit** — one uncheck per chore per day; checkbox locks after re-completion.
-2. **Tasks hidden after End Day** — `TaskSection` hides when `isEnded`; server-side guard in `completeTaskAction`.
-3. **End Day atomicity** — `endDay` server action replaced with a `supabase.rpc('end_day', ...)` call backed by a PostgreSQL function that writes penalty, chore rewards, `ended_at`, and `day_ended` log entry in a single implicit transaction. Partial failure is impossible.
-
-Undo End Day, Undo Rest Day, and Effort Levels were removed (see spec.md).
+Enforce a one-undo-per-day limit on chore unchecking, hide the Tasks section after End Day, block task completion server-side after End Day, and wrap End Day's multi-write sequence in a PostgreSQL atomic function.
 
 ## Technical Context
 
-**Language/Version**: TypeScript (strict mode, no `any`)
-**Primary Dependencies**: Next.js App Router, Supabase, shadcn/ui, TanStack Query/Store
-**Storage**: PostgreSQL via Supabase (RLS-enforced)
+**Language/Version**: TypeScript 5 (strict mode)
+**Primary Dependencies**: Next.js 16.2.4 (App Router, Server Actions), Supabase JS v2, TanStack Query v5, TanStack Store, shadcn/ui, Playwright, Vitest
+**Storage**: PostgreSQL via Supabase (RLS enabled)
 **Testing**: Vitest (unit/integration), Playwright (E2E)
-**Target Platform**: Web (Next.js app)
-**Project Type**: Web application (Next.js App Router)
-**Performance Goals**: Standard SSR response times; single RPC replaces 4–6 round-trips for End Day
-**Constraints**: No client-side transactions; atomicity requires PostgreSQL function via `supabase.rpc()`
-**Scale/Scope**: Single-family app; one kid's dashboard per session
+**Target Platform**: Web — Next.js App Router, deployed via Vercel/Supabase
+**Project Type**: Web application (full-stack, monorepo)
+**Performance Goals**: No new latency requirements; DB migration adds a single integer column and a PL/pgSQL function
+**Constraints**: End Day must be atomic — partial failure must roll back all writes
+**Scale/Scope**: Single-family use; no concurrency concerns for undo limit
 
 ## Constitution Check
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Next.js Patterns | PASS | `endDay` remains a server action; no new API routes |
-| II. Supabase Patterns | PASS | RPC via typed Supabase client; no Edge Functions |
-| III. TanStack First | PASS | No new client state |
-| IV. shadcn Components First | PASS | No new components |
-| V. Test Coverage | PASS | Integration test for atomicity; E2E for end-day flow |
-
-No violations.
+| I. Next.js Patterns (no API routes for mutations) | PASS | All mutations are Server Actions; `end_day` uses `supabase.rpc()` |
+| II. Supabase Patterns (RLS, no Edge Functions) | PASS | New DB function uses SECURITY DEFINER + caller verification; no Edge Functions |
+| III. TanStack First | PASS | No new client state; existing TanStack Query cache invalidation applies |
+| IV. shadcn Components First | PASS | Checkbox locking uses existing shadcn Checkbox disabled state |
+| V. Test Coverage (E2E tasks mandatory) | PASS | E2E tasks are included in tasks.md for all three user stories |
 
 ## Project Structure
 
@@ -48,106 +39,60 @@ specs/005-fix-inconsistent-reversal/
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output
 ├── quickstart.md        # Phase 1 output
-└── tasks.md             # Phase 2 output
+└── tasks.md             # Phase 2 output (/speckit-tasks command)
 ```
 
-### Source Code (relevant files)
+### Source Code (repository root)
 
 ```text
-supabase/migrations/0016_end_day_atomic.sql       # New: end_day() PL/pgSQL function
-lib/actions/day-records.ts                        # endDay → thin auth wrapper + supabase.rpc()
-lib/actions/tasks.ts                              # completeTaskAction day-ended guard
-components/task-list/TaskSection.tsx              # isEnded prop
-components/chore-list/ChoreItem.tsx               # lock checkbox when uncheck exhausted
-app/(dashboard)/page.tsx                          # wire isEnded to TaskSection
-__tests__/integration/end-day-atomic.test.ts      # atomicity integration test
-__tests__/e2e/end-day.spec.ts                     # E2E: end day happy path
+app/
+├── (dashboard)/
+│   └── page.tsx                          # Pass isEnded to TaskSection; remove effort level fetching
+├── actions/                              # (no new files; modified below)
+│   └── ...
+
+lib/
+├── actions/
+│   ├── day-records.ts                    # endDay simplified — auth check + supabase.rpc('end_day', ...)
+│   └── tasks.ts                          # completeTaskAction — server-side day-ended guard
+├── database.types.ts                     # Regenerated from schema
+├── types.ts                              # Add uncheckCount; remove EffortLevel; remove unused DayRecord fields
+├── undo-eligibility.ts                   # canUncheckChore — returns false if uncheck_count > 0
+
+components/
+├── chore-list/
+│   └── ChoreItem.tsx                     # Disable checkbox when uncheck exhausted + completed
+├── task-list/
+│   └── TaskSection.tsx                   # Return null when isEnded prop is true
+
+supabase/migrations/
+├── 0015_undo_counts.sql                  # Add uncheck_count to chore_completions; update action_type constraint
+└── 0016_end_day_atomic.sql              # Create end_day(p_day_record_id uuid) PL/pgSQL function
+
+__tests__/
+├── unit/
+│   └── undo-eligibility.test.ts          # canUncheckChore
+├── integration/
+│   ├── chore-uncheck-limit.test.ts
+│   └── end-day-atomic.test.ts            # Verifies rollback on simulated constraint failure
+└── e2e/
+    ├── chore-uncheck-limit.spec.ts
+    ├── task-locked-after-end-day.spec.ts
+    └── end-day.spec.ts
 ```
 
----
+**Structure Decision**: Single Next.js App Router project. All server logic lives in `lib/actions/`; UI components in `components/`; DB schema in `supabase/migrations/`.
 
-## Phase 0: Research
+## Removed Features
 
-### Finding 1 — No multi-statement transaction API in Supabase JS client
+These are deleted as part of this feature branch (not merely disabled):
 
-Supabase's REST client sends each `insert`/`update` as a separate HTTP request. There is no `BEGIN/COMMIT` wrapper. A partial failure between writes leaves the DB in an inconsistent state.
+| Item | Files / Artifacts |
+|------|-------------------|
+| Undo End Day | `UndoEndDayButton` component, `undoEndDay` server action |
+| Undo Rest Day | `UndoRestDayButton` component, `undoRestDay` server action |
+| Effort Levels | `EffortDropdown`, `edit-effort-level-dialog.tsx`, effort DB actions, admin effort page |
 
-**Fix**: Extract all `endDay` writes into a PostgreSQL function. PostgreSQL wraps PL/pgSQL functions in an implicit transaction — any `RAISE EXCEPTION` rolls back all statements executed so far in that call.
+## Complexity Tracking
 
-### Finding 2 — Existing precedent: `apply_points_delta`
-
-Migration 0003 already uses a `SECURITY DEFINER` PL/pgSQL function for the points update. The same pattern applies here. `auth.uid()` is available inside `SECURITY DEFINER` functions in Supabase because the request JWT is set via `set_config` before the function executes.
-
-### Finding 3 — Penalty and reward logic is simple SQL
-
-`calculatePenalties`: `SUM(penalty_snapshot) WHERE completed_at IS NULL AND (NOT is_rest_day OR is_important)`.
-`calculateChoreRewards`: rows `WHERE completed_at IS NOT NULL AND reward_snapshot > 0`.
-
-Both are straightforward SQL — no special operators. The TypeScript helpers remain for display/testing; the DB function reimplements them in SQL for atomicity.
-
----
-
-## Phase 1: Design
-
-### Data model changes
-
-New migration `0016_end_day_atomic.sql` — adds PostgreSQL function `end_day(p_day_record_id uuid) RETURNS jsonb`.
-
-See [data-model.md](./data-model.md) for the full function definition.
-
-### Contracts
-
-`endDay(dayRecordId: string)` server action — external signature unchanged. Internally replaces sequential writes with `supabase.rpc('end_day', { p_day_record_id: dayRecordId })`.
-
-On RPC error: server action throws, Next.js surfaces error to client.
-On RPC success: returns `{ success: true }` as before.
-
-### Implementation design
-
-#### 1. `supabase/migrations/0016_end_day_atomic.sql`
-
-New PL/pgSQL function (see data-model.md for full body):
-
-- Validates caller owns the day record via `auth.uid()` → raises exception if not found/authorized
-- Idempotent check: if `ended_at IS NOT NULL`, returns `{ success: true }` immediately
-- Calculates and inserts `penalty_applied` activity_log entry (if penalty > 0)
-- Loops over rewarded completions, inserts one `chore_completion_reward` entry each
-- Updates `day_records.ended_at = now()`
-- Inserts `day_ended` activity_log entry
-- All writes in a single implicit transaction — any failure rolls everything back
-
-#### 2. `lib/actions/day-records.ts` — `endDay`
-
-Replace the multi-write body with a thin wrapper:
-
-```ts
-export async function endDay(dayRecordId: string) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { error } = await supabase.rpc('end_day', { p_day_record_id: dayRecordId })
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/')
-  return { success: true }
-}
-```
-
-The auth check (`getUser`) stays in the server action as a fast-fail before the DB round-trip. The function itself also validates ownership internally.
-
-#### 3. Regenerate `lib/database.types.ts`
-
-Run `bunx supabase gen types typescript --local` after applying migration 0016 so `supabase.rpc('end_day', ...)` is fully typed.
-
----
-
-## Post-Design Constitution Check
-
-| Principle | Status |
-|-----------|--------|
-| I. Next.js Patterns | PASS — server action calls RPC; no API routes |
-| II. Supabase Patterns | PASS — typed `supabase.rpc()`; SECURITY DEFINER follows existing pattern |
-| III. TanStack First | PASS — no new state |
-| IV. shadcn Components First | PASS — no UI changes |
-| V. Test Coverage | PASS — integration test validates atomicity; E2E covers happy path |
+> No constitution violations.

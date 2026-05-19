@@ -72,7 +72,18 @@ Migration 0014 adds:
 
 ---
 
-## 7. Run Tests
+## 7. Add Task Editing
+
+No new migration needed — `parent_all_tasks` RLS policy already covers UPDATE.
+
+- `lib/db/tasks.ts`: Add `updateTask(taskId, name, points)` — simple UPDATE on name and points columns
+- `lib/actions/tasks.ts`: Add `updateTaskAction(taskId, formData)` — validates name/points, calls `updateTask`, revalidates path
+- `components/admin/EditTaskDialog.tsx`: New shadcn Dialog component with name and points fields (pattern: `edit-chore-dialog.tsx`)
+- `app/(admin)/admin/tasks/page.tsx`: Add edit button (Pencil icon) per task card, render `EditTaskDialog`
+
+---
+
+## 8. Run Tests
 
 ```bash
 # Unit + integration

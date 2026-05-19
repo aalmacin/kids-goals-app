@@ -137,3 +137,35 @@
 **Decision**: The admin task creation form adds a "Once per day" checkbox visible only for `repeated` task type. The checkbox is client-side interactive (show/hide based on task type selection). `oncePerDay: false` is always stored for `one_time` tasks regardless of form state.
 
 **Rationale**: Simple JS conditional visibility; no hidden fields needed. Keeps the form minimal.
+
+---
+
+## Decision 15: Task Edit — Name and Points Only
+
+**Decision**: New `updateTaskAction(taskId, formData)` server action allows updating only `name` and `points`. A new `EditTaskDialog` component (shadcn Dialog) is triggered by an edit button on each task card in the admin list. Type, once_per_day, and max_completions are immutable after creation.
+
+**Rationale**: Changing task type after completions exist breaks data integrity (e.g., repeated → one-time with multiple completions). Restricting to name/points is safe because the snapshot pattern in `task_completions` preserves original values in activity log entries.
+
+**Alternatives considered**:
+- Full edit (all fields): Rejected — type changes break completion invariants
+- Edit with completions check (lock type only if completions exist): Rejected — inconsistent UX and unnecessary complexity; simpler to always lock structural fields
+
+---
+
+## Decision 16: Edit UI Pattern
+
+**Decision**: shadcn Dialog triggered by an edit button (Pencil icon) on each task card in the admin task list, consistent with `edit-chore-dialog.tsx` and `edit-effort-level-dialog.tsx`.
+
+**Rationale**: Maintains consistency with existing edit patterns in the codebase.
+
+**Alternatives considered**:
+- Inline editing: Rejected — more complex state management, inconsistent with existing patterns
+- Separate edit page: Rejected — overhead for a two-field edit
+
+---
+
+## Decision 17: RLS for Task UPDATE
+
+**Decision**: The existing `parent_all_tasks` RLS policy uses `FOR ALL` which covers SELECT, INSERT, UPDATE, and DELETE. No new migration is needed for UPDATE access.
+
+**Rationale**: Verified from migration 0013_tasks.sql — the policy grants all operations to parents on their family's tasks.

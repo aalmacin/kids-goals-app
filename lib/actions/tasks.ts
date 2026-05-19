@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getFamilyByParentId } from '@/lib/db/families'
 import {
   createTask,
+  updateTask,
   softDeleteTask,
   getTaskCompletionCount,
   getTaskTodayCompletionCount,
@@ -67,6 +68,18 @@ export async function createTaskAction(formData: FormData): Promise<void> {
 
   const { family } = await requireParentFamily()
   await createTask(family.id, name, points, taskType, maxCompletions, oncePerDay)
+  revalidatePath('/admin/tasks')
+}
+
+export async function updateTaskAction(taskId: string, formData: FormData): Promise<void> {
+  const name = (formData.get('name') as string).trim()
+  const points = Number(formData.get('points'))
+
+  if (!name) throw new Error('Task name is required')
+  if (!points || points <= 0) throw new Error('Points must be greater than 0')
+
+  await requireParentFamily()
+  await updateTask(taskId, name, points)
   revalidatePath('/admin/tasks')
 }
 

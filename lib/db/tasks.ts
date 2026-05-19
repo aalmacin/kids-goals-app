@@ -123,6 +123,15 @@ export async function createTask(
   if (error) throw error
 }
 
+export async function updateTask(taskId: string, name: string, points: number): Promise<void> {
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase
+    .from('tasks')
+    .update({ name, points })
+    .eq('id', taskId)
+  if (error) throw error
+}
+
 export async function softDeleteTask(taskId: string): Promise<void> {
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase

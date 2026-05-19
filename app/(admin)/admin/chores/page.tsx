@@ -6,6 +6,7 @@ import { createChoreAction, deleteChoreAction, assignChoreAction, unassignChoreA
 import { ChoreScheduleEditor } from '@/components/chore-list/ChoreScheduleEditor'
 import { ChoreScheduleBadge } from '@/components/chore-list/ChoreScheduleBadge'
 import { ChoreEditForm } from '@/components/chore-list/ChoreEditForm'
+import { EditChoreDialog } from '@/components/edit-chore-dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -108,11 +109,14 @@ export default async function ChoresPage() {
                     </div>
                   </div>
                 </div>
-                <form action={deleteChoreAction.bind(null, chore.id)}>
-                  <Button type="submit" variant="destructive" size="sm">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </form>
+                <div className="flex gap-1">
+                  <EditChoreDialog chore={chore} />
+                  <form action={deleteChoreAction.bind(null, chore.id)}>
+                    <Button type="submit" variant="destructive" size="sm">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </form>
+                </div>
               </div>
 
               {/* Day Schedule */}
