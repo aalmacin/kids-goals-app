@@ -6,8 +6,9 @@
 1. When unchecking (completed -> incomplete), check `uncheck_count == 0`
 2. If `uncheck_count > 0`, reject
 3. On successful uncheck, increment `uncheck_count`
+4. Insert an `activity_log` entry with `action_type: 'chore_unchecked'` and `points_delta: null`
 
-**Rationale**: The count is per-completion per-day (tied to `chore_completions` row). No impact on checking a chore.
+**Rationale**: The count is per-completion per-day (tied to `chore_completions` row). No impact on checking a chore. `points_delta: null` intentionally prevents the event-sourcing trigger from adjusting the kid's balance — unchecking a chore does not reverse points (FR-005 applies only to reversal action types that carry a non-null delta).
 
 ## Task Lock After End Day
 

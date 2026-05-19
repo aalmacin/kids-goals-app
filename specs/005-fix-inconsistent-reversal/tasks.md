@@ -99,7 +99,7 @@
 ### Tests
 
 - [x] T035 [P] Write integration test in `__tests__/integration/end-day-atomic.test.ts` — verify atomicity: simulate constraint violation, assert no partial writes
-- [x] T036 [P] Write E2E test in `__tests__/e2e/end-day.spec.ts` — happy path: end day, verify Tasks section hidden, points updated correctly
+- [x] T036 [P] Write E2E test in `__tests__/e2e/end-day.spec.ts` — happy path: end day, verify Tasks section hidden and "Day Ended" indicator visible; idempotent reload check (point balance assertions deferred to integration test T035)
 
 **Checkpoint**: End Day is atomic — partial failure impossible
 
@@ -118,7 +118,7 @@ The following were deleted as part of this branch:
 
 ## Phase 8: Polish & Regression
 
-- [x] T024 Run all tests (`bun vitest` and `bun playwright test`) — verify no regressions after chore + task changes
+- [x] T024 Run all tests (`bun vitest` and `bun playwright test`) — verify no regressions after chore uncheck + task-lock changes (pre-Phase 6)
 - [x] T041 Run all tests after Phase 6 (End Day Atomicity) — `bun vitest` and `bun playwright test`
 
 ---
