@@ -92,14 +92,14 @@
 
 ### Implementation
 
-- [ ] T032 Create migration `supabase/migrations/0016_end_day_atomic.sql` — implement `end_day(p_day_record_id uuid) RETURNS jsonb` PL/pgSQL SECURITY DEFINER function (validates ownership via `auth.uid()`, idempotent check, inserts `penalty_applied` log, inserts one `chore_completion_reward` log per rewarded completion, sets `ended_at`, inserts `day_ended` log — all in one implicit transaction; see data-model.md for full function body)
-- [ ] T033 Update `endDay` in `lib/actions/day-records.ts` — replace multi-write body with `supabase.rpc('end_day', { p_day_record_id: dayRecordId })`; keep auth fast-fail (`supabase.auth.getUser()`) before the RPC call
-- [ ] T034 Regenerate `lib/database.types.ts` after applying migration 0016 (`bunx supabase gen types typescript --local`)
+- [x] T032 Create migration `supabase/migrations/0016_end_day_atomic.sql` — implement `end_day(p_day_record_id uuid) RETURNS jsonb` PL/pgSQL SECURITY DEFINER function (validates ownership via `auth.uid()`, idempotent check, inserts `penalty_applied` log, inserts one `chore_completion_reward` log per rewarded completion, sets `ended_at`, inserts `day_ended` log — all in one implicit transaction; see data-model.md for full function body)
+- [x] T033 Update `endDay` in `lib/actions/day-records.ts` — replace multi-write body with `supabase.rpc('end_day', { p_day_record_id: dayRecordId })`; keep auth fast-fail (`supabase.auth.getUser()`) before the RPC call
+- [x] T034 Regenerate `lib/database.types.ts` after applying migration 0016 (`bunx supabase gen types typescript --local`)
 
 ### Tests
 
-- [ ] T035 [P] Write integration test in `__tests__/integration/end-day-atomic.test.ts` — verify atomicity: simulate constraint violation, assert no partial writes
-- [ ] T036 [P] Write E2E test in `__tests__/e2e/end-day.spec.ts` — happy path: end day, verify Tasks section hidden, points updated correctly
+- [x] T035 [P] Write integration test in `__tests__/integration/end-day-atomic.test.ts` — verify atomicity: simulate constraint violation, assert no partial writes
+- [x] T036 [P] Write E2E test in `__tests__/e2e/end-day.spec.ts` — happy path: end day, verify Tasks section hidden, points updated correctly
 
 **Checkpoint**: End Day is atomic — partial failure impossible
 
@@ -119,7 +119,7 @@ The following were deleted as part of this branch:
 ## Phase 8: Polish & Regression
 
 - [x] T024 Run all tests (`bun vitest` and `bun playwright test`) — verify no regressions after chore + task changes
-- [ ] T041 Run all tests after Phase 6 (End Day Atomicity) — `bun vitest` and `bun playwright test`
+- [x] T041 Run all tests after Phase 6 (End Day Atomicity) — `bun vitest` and `bun playwright test`
 
 ---
 
